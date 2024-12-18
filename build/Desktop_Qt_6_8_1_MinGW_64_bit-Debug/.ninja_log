@@ -1,0 +1,26 @@
+# ninja log v6
+17	335	7555492205877980	C:/Users/user/Documents/Shapez/build/Desktop_Qt_6_8_1_MinGW_64_bit-Debug/Shapez_autogen/timestamp	393bb678b4f9398b
+1387	4481	7555480929110441	CMakeFiles/Shapez.dir/gamescene.cpp.obj	c67a52c865de183
+17	335	7555492205877980	Shapez_autogen/timestamp	393bb678b4f9398b
+17	335	7555492205877980	Shapez_autogen/mocs_compilation.cpp	393bb678b4f9398b
+17	335	7555492205877980	C:/Users/user/Documents/Shapez/build/Desktop_Qt_6_8_1_MinGW_64_bit-Debug/Shapez_autogen/mocs_compilation.cpp	393bb678b4f9398b
+352	787	7555489778742106	Shapez_autogen/EWIEGA46WW/qrc_res.cpp	c5f63053347ecef4
+1395	2228	7555480929266696	CMakeFiles/Shapez.dir/map.cpp.obj	5bcdb1324ce682b6
+1219	4281	7555488671630535	CMakeFiles/Shapez.dir/Shapez_autogen/mocs_compilation.cpp.obj	676cac719cd5014e
+337	3265	7555492209124415	CMakeFiles/Shapez.dir/main.cpp.obj	b43f5d1a7b58b240
+344	3498	7555492209124415	CMakeFiles/Shapez.dir/mainscene.cpp.obj	44b708edb6ed3230
+3499	4059	7555492240746515	Shapez.exe	939895dd73707af8
+35	1791	7555500643429398	build.ninja	66ec4e5736deeb89
+352	787	7555489778742106	C:/Users/user/Documents/Shapez/build/Desktop_Qt_6_8_1_MinGW_64_bit-Debug/Shapez_autogen/EWIEGA46WW/qrc_res.cpp	c5f63053347ecef4
+794	5081	7555489779792463	CMakeFiles/Shapez.dir/Shapez_autogen/EWIEGA46WW/qrc_res.cpp.obj	3e9a7b266fac7939
+37	1250	7555500679498145	Shapez_autogen/timestamp	393bb678b4f9398b
+37	1250	7555500679498145	Shapez_autogen/mocs_compilation.cpp	393bb678b4f9398b
+37	1250	7555500679498145	C:/Users/user/Documents/Shapez/build/Desktop_Qt_6_8_1_MinGW_64_bit-Debug/Shapez_autogen/timestamp	393bb678b4f9398b
+37	1250	7555500679498145	C:/Users/user/Documents/Shapez/build/Desktop_Qt_6_8_1_MinGW_64_bit-Debug/Shapez_autogen/mocs_compilation.cpp	393bb678b4f9398b
+1284	2228	7555500681678183	CMakeFiles/Shapez.dir/map.cpp.obj	460f721046fcef24
+1274	4523	7555500681572889	CMakeFiles/Shapez.dir/gamescene.cpp.obj	a138d5e359d5766d
+1253	4703	7555500681365229	CMakeFiles/Shapez.dir/Shapez_autogen/mocs_compilation.cpp.obj	5675c01b9b3f0b12
+1259	4758	7555500681429658	CMakeFiles/Shapez.dir/main.cpp.obj	2103a8a5d11a3059
+1266	5017	7555500681499443	CMakeFiles/Shapez.dir/mainscene.cpp.obj	6ce051fed4112ad
+1295	5732	7555500681791872	CMakeFiles/Shapez.dir/Shapez_autogen/EWIEGA46WW/qrc_res.cpp.obj	f84f5095a5fa165d
+5733	6408	7555500726163988	Shapez.exe	69c86a2cb35be305

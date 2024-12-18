@@ -1,0 +1,30 @@
+{
+	"BUILD_DIR" : "C:/Users/user/Documents/Shapez/build/Desktop_Qt_6_8_1_MinGW_64_bit-Debug/Shapez_autogen",
+	"CMAKE_BINARY_DIR" : "C:/Users/user/Documents/Shapez/build/Desktop_Qt_6_8_1_MinGW_64_bit-Debug",
+	"CMAKE_CURRENT_BINARY_DIR" : "C:/Users/user/Documents/Shapez/build/Desktop_Qt_6_8_1_MinGW_64_bit-Debug",
+	"CMAKE_CURRENT_SOURCE_DIR" : "C:/Users/user/Documents/Shapez",
+	"CMAKE_SOURCE_DIR" : "C:/Users/user/Documents/Shapez",
+	"CROSS_CONFIG" : false,
+	"GENERATOR" : "Ninja",
+	"INCLUDE_DIR" : "C:/Users/user/Documents/Shapez/build/Desktop_Qt_6_8_1_MinGW_64_bit-Debug/Shapez_autogen/include",
+	"INPUTS" : 
+	[
+		"C:/Users/user/Documents/Shapez/res/icon.ico",
+		"C:/Users/user/Documents/Shapez/res/res.qrc",
+		"C:/Users/user/Documents/Shapez/res/mainbackground.png",
+		"C:/Users/user/Documents/Shapez/res/get_on_steam.png",
+		"C:/Users/user/Documents/Shapez/res/logo.png",
+		"C:/Users/user/Documents/Shapez/res/title.png"
+	],
+	"LOCK_FILE" : "C:/Users/user/Documents/Shapez/build/Desktop_Qt_6_8_1_MinGW_64_bit-Debug/CMakeFiles/Shapez_autogen.dir/AutoRcc_res_EWIEGA46WW_Lock.lock",
+	"MULTI_CONFIG" : false,
+	"OPTIONS" : [ "--no-zstd", "-name", "res" ],
+	"OUTPUT_CHECKSUM" : "EWIEGA46WW",
+	"OUTPUT_NAME" : "qrc_res.cpp",
+	"RCC_EXECUTABLE" : "D:/Qt/6.8.1/mingw_64/bin/rcc.exe",
+	"RCC_LIST_OPTIONS" : [ "--list" ],
+	"SETTINGS_FILE" : "C:/Users/user/Documents/Shapez/build/Desktop_Qt_6_8_1_MinGW_64_bit-Debug/CMakeFiles/Shapez_autogen.dir/AutoRcc_res_EWIEGA46WW_Used.txt",
+	"SOURCE" : "C:/Users/user/Documents/Shapez/res.qrc",
+	"USE_BETTER_GRAPH" : true,
+	"VERBOSITY" : 0
+}
