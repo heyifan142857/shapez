@@ -1,25 +1,29 @@
 #ifndef MAP_H
 #define MAP_H
 
-
-#include <vector>
-
-#define BLANK 0
-#define REDMINE 1
-#define BLUEMINE 2
-#define GREENMINE 3
-#define DELIVER 4
-#define CYCLEMINE 5
-#define SQUAREMINE 6
-#define RHOMBUSMINE 7
-
-class gameMap{
-    int m,n;
-    int deliver_x,deliver_y;
-    std::vector<std::vector<int>> map;
+class Map {
 public:
-    gameMap(int m,int n);
+    Map(int width, int height);
+    void setTile(int x, int y, const Tile& tile);
+    Tile getTile(int x, int y) const;
+
+private:
+    QVector<QVector<Tile>> tiles;
 };
+
+class TileItem : public QGraphicsRectItem {
+public:
+    TileItem(const Tile& tile) {
+        if (tile.type == Tile::Type::Resource) {
+            setBrush(Qt::green); // 假设绿色表示资源
+        } else if (tile.type == Tile::Type::Building) {
+            setBrush(Qt::blue); // 蓝色表示建筑
+        } else {
+            setBrush(Qt::gray); // 空白格子
+        }
+    }
+};
+
 
 
 #endif // MAP_H
