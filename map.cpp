@@ -1,13 +1,17 @@
 #include "map.h"
 
-Map::Map(int width, int height){
-    tiles.resize(width,QVector<Tile>(height));
+Map::Map(int width, int height,QWidget* parent) : QWidget(parent){
+    // 假设 width 和 height 分别表示地图的宽度和高度
+    tiles.resize(width);  // 先调整外部 QVector 的大小，表示列数
+    for (int i = 0; i < width; ++i) {
+        tiles[i].resize(height);  // 再调整每个内部 QVector 的大小，表示行数
+    }
 }
 
 void Map::setTile(int x, int y, const Tile& tile){
     if(x >= tiles.size() || y >= (tiles.empty()?0:tiles[0].size()) ||
         x < 0 || y < 0){
-        qWarning() << "Map::setTile  x,y is out of range";
+        qWarning() << "Map::setTile x,y is out of range";
     }else{
         tiles[x][y] = tile;
     }
@@ -16,11 +20,10 @@ void Map::setTile(int x, int y, const Tile& tile){
 Tile Map::getTile(int x, int y) const{
     if(x >= tiles.size() || y >= (tiles.empty()?0:tiles[0].size()) ||
         x < 0 || y < 0){
-        qWarning() << "Map::getTile  x,y is out of range";
-        return ;
-    }else{
-        return tiles[x][y];
+        qWarning() << "Map::getTile x,y is out of range";
     }
+    return tiles[x][y];
+
 };
 
 

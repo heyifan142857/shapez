@@ -4,7 +4,7 @@
 #include <QWidget>
 #include <QLabel>
 #include <QTimer>
-//#include "buildings.h"
+#include "map.h"
 #define NORTH 0
 #define SOUTH 1
 #define WEST 2

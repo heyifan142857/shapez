@@ -1,6 +1,7 @@
 #ifndef MAP_H
 #define MAP_H
 
+#include <QWidget>
 #include <QVector>
 #include <QString>
 #include <QColor>
@@ -16,6 +17,9 @@ public:
         Building
     };
 
+    Tile()
+        : type(Type::Empty), resource(""), building("") {}
+
     Tile(Type type, const QString& resource = "", const QString& building = "")
         : type(type), resource(resource), building(building) {}
 
@@ -25,9 +29,10 @@ public:
 };
 
 
-class Map {
+class Map : public QWidget{
+    Q_OBJECT
 public:
-    Map(int width, int height);
+    Map(int width, int height,QWidget* parent = nullptr);
     void setTile(int x, int y, const Tile& tile);
     Tile getTile(int x, int y) const;
 
