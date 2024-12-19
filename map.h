@@ -2,8 +2,28 @@
 #define MAP_H
 
 #include <QVector>
+#include <QString>
+#include <QColor>
+#include <QBrush>
 #include <QGraphicsRectItem>
-#include "tile.h"
+#include <QDebug>
+
+class Tile {
+public:
+    enum class Type {
+        Empty,
+        Resource,
+        Building
+    };
+
+    Tile(Type type, const QString& resource = "", const QString& building = "")
+        : type(type), resource(resource), building(building) {}
+
+    Type type;        // Tile的类型（空白、资源、建筑）
+    QString resource; // 资源的类型（如果是资源类型的话）
+    QString building; // 建筑的名称（如果是建筑类型的话）
+};
+
 
 class Map {
 public:
