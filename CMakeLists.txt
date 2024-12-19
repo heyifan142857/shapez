@@ -26,9 +26,9 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         gamescene.cpp gamescene.h map.cpp map.h
         res.qrc
-        buildings.h buildings.cpp
+
         belt.h belt.cpp
-        tile.h tile.cpp
+
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET Shapez APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

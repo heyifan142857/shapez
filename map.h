@@ -1,6 +1,10 @@
 #ifndef MAP_H
 #define MAP_H
 
+#include <QVector>
+#include <QGraphicsRectItem>
+#include "tile.h"
+
 class Map {
 public:
     Map(int width, int height);
