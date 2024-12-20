@@ -4,7 +4,7 @@ Belt::Belt(int direction, QString type, int x, int y, QWidget *parent):
     QWidget(parent), direction(direction), type(type), currentIndex(0)
 {
     beltLabel = new QLabel(parent);
-    beltLabel->setAlignment(Qt::AlignCenter);
+    //beltLabel->setAlignment(Qt::AlignCenter);
     beltLabel->move(x,y);
 
     // 加载传送带图片

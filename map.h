@@ -9,50 +9,49 @@
 #include <QGraphicsRectItem>
 #include <QDebug>
 
+#define NORTH 0
+#define SOUTH 1
+#define WEST 2
+#define EAST 3
+
 class Tile {
 public:
     enum class Type {
         Empty,
+        Belt,
         Resource,
         Building
     };
 
-    Tile()
-        : type(Type::Empty), resource(""), building("") {}
+    Tile(): type(Type::Empty), resource(""), building("") {}
+    Tile(Type type, const QString& resource = "", const QString& building = "");
+    Tile(Type type, int direction, QString state);
 
-    Tile(Type type, const QString& resource = "", const QString& building = "")
-        : type(type), resource(resource), building(building) {}
 
-    Type type;        // Tile的类型（空白、资源、建筑）
+    Type type;        // Tile的类型（空白、传送带、资源、建筑）
+    int direction; //朝向
+    QString state; //传送带的种类
     QString resource; // 资源的类型（如果是资源类型的话）
     QString building; // 建筑的名称（如果是建筑类型的话）
+    QVector<QPixmap> images;//存储动态帧
+    QPixmap pixmap;//存储静态图像
+    bool isAnimated;  // 标记是否需要动画
+    int frameIndex;   // 当前显示的帧的索引
 };
 
 
 class Map : public QWidget{
     Q_OBJECT
 public:
-    Map(int width, int height,QWidget* parent = nullptr);
+    Map(int width, int height, QWidget* parent = nullptr);
     void setTile(int x, int y, const Tile& tile);
     Tile getTile(int x, int y) const;
+    int getwidth();
+    int getheight();
 
 private:
     QVector<QVector<Tile>> tiles;
+    int width, height;
 };
-
-class TileItem : public QGraphicsRectItem {
-public:
-    TileItem(const Tile& tile) {
-        if (tile.type == Tile::Type::Resource) {
-            setBrush(Qt::green); // 假设绿色表示资源
-        } else if (tile.type == Tile::Type::Building) {
-            setBrush(Qt::blue); // 蓝色表示建筑
-        } else {
-            setBrush(Qt::gray); // 空白格子
-        }
-    }
-};
-
-
 
 #endif // MAP_H
