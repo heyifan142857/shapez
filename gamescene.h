@@ -4,7 +4,6 @@
 #include <QWidget>
 #include <QIcon>
 #include <QLabel>
-#include "belt.h"
 
 class Gamescene : public QWidget
 {

@@ -5,14 +5,18 @@
 #include <QVector>
 #include <QString>
 #include <QColor>
+#include <QPainter>
 #include <QBrush>
 #include <QGraphicsRectItem>
-#include <QDebug>
+#include <QTimer>
+
 
 #define NORTH 0
 #define SOUTH 1
 #define WEST 2
 #define EAST 3
+
+#define TILESIZE 50
 
 class Tile {
 public:
@@ -26,7 +30,6 @@ public:
     Tile(): type(Type::Empty), resource(""), building("") {}
     Tile(Type type, const QString& resource = "", const QString& building = "");
     Tile(Type type, int direction, QString state);
-
 
     Type type;        // Tile的类型（空白、传送带、资源、建筑）
     int direction; //朝向
@@ -44,14 +47,24 @@ class Map : public QWidget{
     Q_OBJECT
 public:
     Map(int width, int height, QWidget* parent = nullptr);
-    void setTile(int x, int y, const Tile& tile);
+    void setTile(int x, int y, Tile& tile);
     Tile getTile(int x, int y) const;
     int getwidth();
     int getheight();
 
+public:
+    void paintEvent(QPaintEvent* event) override;
+
+public:
+    void drawTileAtPosition(QPainter& painter, const Tile& tile, int posX, int posY);
+
+private slots:
+    void updateAnimationFrame();
+
 private:
     QVector<QVector<Tile>> tiles;
     int width, height;
+    QTimer* animationTimer;
 };
 
 #endif // MAP_H
