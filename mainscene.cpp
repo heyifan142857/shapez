@@ -1,4 +1,5 @@
 #include "mainscene.h"
+#include "map.h"
 #include "./ui_mainscene.h"
 
 Mainscene::Mainscene(QWidget *parent)
@@ -20,9 +21,6 @@ Mainscene::Mainscene(QWidget *parent)
     player->setSource(QUrl("qrc:/res/menu.wav"));
     audioOutput->setVolume(0.3);
     player->play();
-
-
-    _gamescene = new Gamescene;
 
 
     //添加各种按钮
@@ -103,10 +101,11 @@ Mainscene::Mainscene(QWidget *parent)
         newbtnanimation->start();
 
         QTimer::singleShot(500,this,[=](){
+            gamescene = new Gamescene;
             player->pause();//暂停音乐
             this->hide();
-            _gamescene->setGeometry(this->geometry());
-            _gamescene->show();
+            gamescene->setGeometry(this->geometry());
+            gamescene->show();
             qDebug() << "当前在游戏界面";
         });
     });

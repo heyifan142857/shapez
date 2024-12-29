@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QIcon>
 #include <QLabel>
+#include "Map.h"
 
 class Gamescene : public QWidget
 {
@@ -12,6 +13,8 @@ public:
     explicit Gamescene(QWidget *parent = nullptr);
 
     void paintEvent(QPaintEvent *);
+
+    Map * map = nullptr;
 
 signals:
 };

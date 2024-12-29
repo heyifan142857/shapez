@@ -37,6 +37,7 @@ public:
 private:
     QMediaPlayer *player;
     QAudioOutput *audioOutput;
+    Gamescene *gamescene = nullptr;
 private:
     Ui::MainScene *ui;
 };

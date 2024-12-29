@@ -4,7 +4,6 @@
 Tile::Tile(Type type, const QString& resource, const QString& building):
     type(type), resource(resource), building(building),
     isAnimated(type==Type::Belt ? true : false) {
-
 }
 
 //专门为Belt而写的构造函数，因为只有Belt会动
@@ -37,8 +36,9 @@ Tile::Tile(Type type, int direction, QString state):
         QPixmap pixmap;
         if (!pixmap.load(QString(":/res/belt/%1_%2.png").arg(state).arg(i))) {
             qWarning() << "Failed to load image:" << QString(":/res/belt/%1_%2.png").arg(state).arg(i);
+            continue;  // 忽略加载失败的图像
         }
-        QPixmap scaledpixmap = pixmap.scaled(50, 50, Qt::KeepAspectRatio).transformed(transform);
+        QPixmap scaledpixmap = pixmap.scaled(TILESIZE, TILESIZE, Qt::KeepAspectRatio).transformed(transform);
         images.push_back(scaledpixmap);
     }
 }
@@ -47,23 +47,32 @@ Tile::Tile(Type type, int direction, QString state):
 Map::Map(int width, int height,QWidget* parent) :
     QWidget(parent), width(width), height(height){
     // 假设 width 和 height 分别表示地图的宽度和高度
-    tiles.resize(width);  // 先调整外部 QVector 的大小，表示列数
-    for (int i = 0; i < width; ++i) {
-        tiles[i].resize(height);  // 再调整每个内部 QVector 的大小，表示行数
+    if (width <= 0 || height <= 0) {
+        qWarning() << "Invalid map dimensions:" << width << height;
+        return;
+    }
+    tiles.resize(width);
+    for (auto& row : tiles) {
+        row.resize(height);  // 每一列设置为 height 行，每个元素默认初始化为 Tile()
     }
 
     // 设置定时器来更新动画
     animationTimer = new QTimer(this);
     connect(animationTimer, &QTimer::timeout, this, &Map::updateAnimationFrame);
-    animationTimer->start(20);  // 每 20 毫秒更新一次帧
+    animationTimer->start(20); // 每 20 毫秒更新一次帧
 }
 
-void Map::setTile(int x, int y, Tile& tile){
-    if(x >= tiles.size() || y >= (tiles.empty()?0:tiles[0].size()) ||
+Map::~Map() {
+    // delete animationTimer;
+}
+
+void Map::setTile(int x, int y, Tile tile){
+    if(x >= tiles.size() || y >= tiles[0].size() ||
         x < 0 || y < 0){
         qWarning() << "Map::setTile x,y is out of range";
     }else{
         tiles[x][y] = tile;
+        qDebug() << "set (" << x << ", " << y << ") a new tile";
         //tile.setLocation();
     }
 };
@@ -76,38 +85,27 @@ Tile Map::getTile(int x, int y) const{
     return tiles[x][y];
 };
 
-int Map::getwidth(){
+int Map::getwidth() const{
     return width;
 }
 
-int Map::getheight(){
+int Map::getheight() const{
     return height;
 }
 
-void Map::paintEvent(QPaintEvent* event){
-    QPainter painter(this);
+void Map::paintMap(QPainter* painter) {
+    qDebug() << "paiting map";
     for (int x = 0; x < tiles.size(); ++x) {
         for (int y = 0; y < tiles[x].size(); ++y) {
             const Tile& tile = tiles[x][y];
-
-            if (tile.isAnimated) {
-                // 动画建筑：绘制当前帧
-                painter.drawPixmap(x * TILESIZE, y * TILESIZE, TILESIZE, TILESIZE, tile.images[tile.frameIndex]);
-            } else {
-                // 非动画建筑：绘制静态图像
-                painter.drawPixmap(x * TILESIZE, y * TILESIZE, TILESIZE, TILESIZE, tile.pixmap);
+            if (tile.type == Tile::Type::Belt) {
+                if (tile.isAnimated) {
+                    painter->drawPixmap(x * TILESIZE, y * TILESIZE, TILESIZE, TILESIZE, tile.images[tile.frameIndex]);
+                } else {
+                    painter->drawPixmap(x * TILESIZE, y * TILESIZE, TILESIZE, TILESIZE, tile.pixmap);
+                }
             }
         }
-    }
-}
-
-void Map::drawTileAtPosition(QPainter& painter, const Tile& tile, int posX, int posY) {
-    if (tile.isAnimated) {
-        // 动画建筑：绘制当前帧
-        painter.drawPixmap(posX, posY, TILESIZE, TILESIZE, tile.images[tile.frameIndex]);
-    } else {
-        // 非动画建筑：绘制静态图像
-        painter.drawPixmap(posX, posY, TILESIZE, TILESIZE, tile.pixmap);
     }
 }
 

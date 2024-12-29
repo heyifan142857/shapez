@@ -27,7 +27,7 @@ public:
         Building
     };
 
-    Tile(): type(Type::Empty), resource(""), building("") {}
+    Tile(): type(Type::Empty), resource(""), building(""), isAnimated(false) {}
     Tile(Type type, const QString& resource = "", const QString& building = "");
     Tile(Type type, int direction, QString state);
 
@@ -47,16 +47,14 @@ class Map : public QWidget{
     Q_OBJECT
 public:
     Map(int width, int height, QWidget* parent = nullptr);
-    void setTile(int x, int y, Tile& tile);
+    ~Map();
+    void setTile(int x, int y, Tile tile);
     Tile getTile(int x, int y) const;
-    int getwidth();
-    int getheight();
+    int getwidth() const;
+    int getheight() const;
 
 public:
-    void paintEvent(QPaintEvent* event) override;
-
-public:
-    void drawTileAtPosition(QPainter& painter, const Tile& tile, int posX, int posY);
+    void paintMap(QPainter* painter);
 
 private slots:
     void updateAnimationFrame();
