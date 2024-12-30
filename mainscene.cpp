@@ -1,7 +1,6 @@
 #include "mainscene.h"
-#include "map.h"
+#include <QMessageBox>
 #include "./ui_mainscene.h"
-
 Mainscene::Mainscene(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::MainScene)
@@ -126,6 +125,10 @@ Mainscene::Mainscene(QWidget *parent)
         readbtnanimation->setStartValue(readbtn->geometry());
         readbtnanimation->setEndValue(readbtnGeometry);
         readbtnanimation->start();
+
+        QTimer::singleShot(500,this,[=](){
+            QMessageBox::information(this,"提示","功能尚未实现");
+        });
     });
 
 
@@ -145,6 +148,10 @@ Mainscene::Mainscene(QWidget *parent)
         continuebtnanimation->setStartValue(continuebtn->geometry());
         continuebtnanimation->setEndValue(continuebtnGeometry);
         continuebtnanimation->start();
+
+        QTimer::singleShot(500,this,[=](){
+            QMessageBox::information(this,"提示","功能尚未实现");
+        });
     });
 
     connect(getonsteambtn,&QPushButton::clicked,this,[](){
