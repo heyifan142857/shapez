@@ -26,6 +26,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         gamescene.cpp gamescene.h map.cpp map.h
         res.qrc
+        tile.h tile.cpp
 
 
 

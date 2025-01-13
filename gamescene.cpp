@@ -28,3 +28,4 @@ void Gamescene::paintEvent(QPaintEvent *event) {
     }
 }
 
+
