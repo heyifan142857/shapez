@@ -49,10 +49,10 @@ void Map::setTile(int x, int y, Tile &tile) {
             for (int j = 0; j < tile.size.second; ++j) {
                 if (i == 0 && j == 0) continue;
                 if (x + i < tiles.size() && y + j < tiles[0].size()) {
-                    // tiles[x + i][y + j] = tile;
-                    // tiles[x + i][y + j].label = new QLabel(this);
-                    // tiles[x + i][y + j].father = &tiles[x][y];
-                    // tiles[x][y].sons.push_back(std::make_pair(x + i, y + j));
+                    tiles[x + i][y + j] = tile;
+                    tiles[x + i][y + j].label = new QLabel(this);
+                    tiles[x + i][y + j].father = &tiles[x][y];
+                    tiles[x][y].sons.push_back(std::make_pair(x + i, y + j));
                 }
             }
         }
