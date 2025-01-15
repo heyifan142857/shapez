@@ -82,6 +82,22 @@ Mainscene::Mainscene(QWidget *parent)
         );
     getonsteambtn->move(500,725);
 
+    QPushButton * githubbtn = new QPushButton();
+    githubbtn->setParent(this);
+    githubbtn->setFixedSize(80, 80);
+    githubbtn->setIconSize(QSize(54,54));
+    githubbtn->setIcon(QIcon(":/res/github.png"));
+    githubbtn->setStyleSheet(
+        "QPushButton {"
+        " border: none;"
+        " background-color: white;"
+        " border-radius: 40px;"
+        " padding: 0;"
+        " margin: 0;"
+        "}"
+        );
+    githubbtn->move(40,780);
+
     QPropertyAnimation *newbtnanimation = new QPropertyAnimation(newbtn, "geometry");
     newbtnanimation->setDuration(100);
     newbtnanimation->setEasingCurve(QEasingCurve::OutQuad);
@@ -157,6 +173,12 @@ Mainscene::Mainscene(QWidget *parent)
     connect(getonsteambtn,&QPushButton::clicked,this,[](){
         qDebug() << "点击get_on_steam图标";
         QUrl url("https://store.steampowered.com/app/1318690/Shapez/");
+        QDesktopServices::openUrl(url);
+    });
+
+    connect(githubbtn,&QPushButton::clicked,this,[](){
+        qDebug() << "点击github图标";
+        QUrl url("https://github.com/heyifan142857/shapez");
         QDesktopServices::openUrl(url);
     });
 }

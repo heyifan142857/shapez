@@ -1,6 +1,5 @@
 #include "gamescene.h"
 #include <QVBoxLayout>
-#include "map.h"
 
 Gamescene::Gamescene(QWidget *parent)
     : QWidget{parent}
@@ -10,19 +9,24 @@ Gamescene::Gamescene(QWidget *parent)
     setWindowIcon(QIcon(":/res/icon.ico"));
     setWindowTitle("Shapez");
 
-    // Belt *belt = new Belt(NORTH,"forward",0,0,this);
+    qDebug() << "building map";
     map = new Map(18,32,this);
-    Tile forwardBelt(Tile::Type::Belt, NORTH, "forward");
-    Tile forwardBelt2(Tile::Type::Belt, EAST, "forward");
-    Tile rightBelt(Tile::Type::Belt, NORTH, "right");
-    Tile northLever(Tile::Type::Building, "lever", NORTH);
-    Tile eastLever(Tile::Type::Building, "lever", EAST);
+    Tile Hub(Tile::Type::Hub);
+    map->setTile(7,14,Hub);
+    qDebug() << "successfully build map";
+
+    //测试
+    Tile forwardBelt(Tile::Type::Belt, "forward", NORTH);
+    Tile forwardBelt2(Tile::Type::Belt, "forward", EAST);
+    Tile rightBelt(Tile::Type::Belt, "right", NORTH);
+    Tile northMiner(Tile::Type::Building, NORTH, "miner-chainable");
+    Tile eastMiner(Tile::Type::Building, EAST, "miner-chainable");
     map->setTile(0,0,rightBelt);
     map->setTile(1,0,forwardBelt);
     map->setTile(2,0,forwardBelt);
     map->setTile(0,1,forwardBelt2);
-    map->setTile(5,5,northLever);
-    map->setTile(5,6,eastLever);
+    map->setTile(5,5,northMiner);
+    map->setTile(5,6,eastMiner);
 
     QVBoxLayout* layout = new QVBoxLayout(this);
     layout->addWidget(map);

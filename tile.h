@@ -17,15 +17,19 @@ class Tile {
 public:
     enum class Type {
         Empty,
+        Hub,
         Belt,
         Resource,
         Color,
         Building
     };
 
-    Tile(): type(Type::Empty), name(""){}
-    Tile(Type type, const QString& name , int direction);
-    Tile(Type type, int direction, QString state);
+    Tile(): type(Type::Empty), name(""), label(nullptr), size(std::make_pair(1,1)){}
+    Tile(Type type, int direction, const QString& name, std::pair<int,int> size = std::make_pair(1,1));
+    Tile(Type type, QString state, int direction);//Belt构造函数
+    Tile(Type type, QString name = "Hub");//Hub构造函数
+
+    ~Tile();
 
     Type type;        // Tile的类型（空白、传送带、资源、建筑）
     int direction; //朝向
@@ -35,6 +39,9 @@ public:
     QPixmap image;//存储静态图像
     int frameIndex;   // 当前显示的帧的索引
     QLabel* label;    // 用于显示图像的 QLabel
+    std::pair<int,int> size; //表示大小
+    Tile* father = nullptr;
+    QVector<std::pair<int,int>> sons;
 };
 
 #endif // TILE_H

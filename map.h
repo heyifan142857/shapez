@@ -20,6 +20,7 @@ public:
     ~Map();
     void setTile(int x, int y, Tile &tile);
     Tile getTile(int x, int y) const;
+    bool deleteTile(int x, int y);
     int getwidth() const;
     int getheight() const;
 

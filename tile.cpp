@@ -1,7 +1,7 @@
 #include "tile.h"
 
-Tile::Tile(Type type, const QString& name, int direction):
-    type(type), name(name), direction(direction){
+Tile::Tile(Type type, int direction, const QString& name, std::pair<int,int> size):
+    type(type), name(name), direction(direction), label(nullptr), size(size){
     QPixmap pixmap;
     QPixmap scaledpixmap;
     int w = 0;
@@ -37,7 +37,7 @@ Tile::Tile(Type type, const QString& name, int direction):
             qWarning() << "Failed to load image:" << QString(":/res/buildings/%1.png").arg(name);
             QPixmap wrongPixmap(TILESIZE, TILESIZE);
             wrongPixmap.fill(Qt::white);
-            image = scaledpixmap;
+            image = wrongPixmap;
             break;
         }
         w = pixmap.width();
@@ -52,7 +52,7 @@ Tile::Tile(Type type, const QString& name, int direction):
             qWarning() << "Failed to load image:" << QString(":/res/colors/%1.png").arg(name);
             QPixmap wrongPixmap(TILESIZE, TILESIZE);
             wrongPixmap.fill(Qt::white);
-            image = scaledpixmap;
+            image = wrongPixmap;
             break;
         }
         w = pixmap.width();
@@ -77,9 +77,12 @@ Tile::Tile(Type type, const QString& name, int direction):
 }
 
 //专门为Belt而写的构造函数，因为只有Belt会动
-Tile::Tile(Type type, int direction, QString state):
+Tile::Tile(Type type, QString state, int direction):
     type(type), direction(direction), state(state),
-    frameIndex(0),label(nullptr){
+    frameIndex(0),label(nullptr),size(std::make_pair(1,1)){
+    if(type != Tile::Type::Belt){
+        qDebug() << "Not belt";
+    }
     //根据direction设置旋转角度
     QTransform transform;
     int angle;
@@ -114,4 +117,29 @@ Tile::Tile(Type type, int direction, QString state):
         QPixmap scaledpixmap = pixmap.scaled(TILESIZE, TILESIZE, Qt::KeepAspectRatio).transformed(transform);
         images.push_back(scaledpixmap);
     }
+}
+
+//Hub构造函数
+Tile::Tile(Type type, QString name):type(type), name(name),label(nullptr), size(std::make_pair(4,4)){
+    QPixmap pixmap;
+    if (!pixmap.load(QString(":/res/buildings/hub.png"))) {
+        qWarning() << "Failed to load image:" << QString(":/res/buildings/hub.png");
+        QPixmap wrongPixmap(TILESIZE, TILESIZE);
+        wrongPixmap.fill(Qt::white);
+        image = wrongPixmap;
+    }
+    int w = pixmap.width();
+    int h = pixmap.height();
+    w = w / 192 * TILESIZE;
+    h = h / 192 * TILESIZE;
+    QPixmap scaledpixmap = pixmap.scaled(w, h, Qt::KeepAspectRatio);
+    image = scaledpixmap;
+};
+
+Tile::~Tile(){
+    if (label) {
+        delete label;
+        label = nullptr;
+    }
+    sons.clear();
 }

@@ -186,5 +186,6 @@
         <file>res/colors/uncolored.png</file>
         <file>res/colors/white.png</file>
         <file>res/colors/yellow.png</file>
+        <file>res/github.png</file>
     </qresource>
 </RCC>

@@ -28,18 +28,34 @@ Map::~Map() {
 
 void Map::setTile(int x, int y, Tile &tile) {
     qDebug() << "setting pos("<<x<<", "<<y<<") a new tile";
+    if(!deleteTile(x,y)){return;}
     if (x >= tiles.size() || y >= tiles[0].size() || x < 0 || y < 0) {
         qWarning() << "Map::setTile x,y is out of range";
     } else {
         tiles[x][y] = tile;
         tiles[x][y].label = new QLabel(this);
-        tiles[x][y].label->setGeometry(y * TILESIZE, x * TILESIZE, TILESIZE, TILESIZE);
+        tiles[x][y].label->setGeometry(y * TILESIZE, x * TILESIZE, tile.size.second * TILESIZE, tile.size.first * TILESIZE);
         if (tile.type == Tile::Type::Belt && !tile.images.empty()) {
             tiles[x][y].label->setPixmap(tile.images[tile.frameIndex]);
         } else {
             tiles[x][y].label->setPixmap(tile.image);
         }
         qDebug() << "successfully set pos("<<x<< ", " <<y<<") a new tile";
+    }
+
+    if (tile.size != std::make_pair(1,1)) {
+        qDebug() << "size > 1*1";
+        for (int i = 0; i < tile.size.first; ++i) {
+            for (int j = 0; j < tile.size.second; ++j) {
+                if (i == 0 && j == 0) continue;
+                if (x + i < tiles.size() && y + j < tiles[0].size()) {
+                    // tiles[x + i][y + j] = tile;
+                    // tiles[x + i][y + j].label = new QLabel(this);
+                    // tiles[x + i][y + j].father = &tiles[x][y];
+                    // tiles[x][y].sons.push_back(std::make_pair(x + i, y + j));
+                }
+            }
+        }
     }
 }
 
@@ -48,7 +64,35 @@ Tile Map::getTile(int x, int y) const{
         x < 0 || y < 0){
         qWarning() << "Map::getTile x,y is out of range";
     }
+    if(tiles[x][y].father != nullptr){
+        return *(tiles[x][y].father);
+    }
     return tiles[x][y];
+};
+
+bool Map::deleteTile(int x, int y){
+    if(tiles[x][y].type == Tile::Type::Empty){
+        return true;
+    }
+    if(tiles[x][y].type == Tile::Type::Hub){
+        qDebug() << "Hub cannot be destoryed";
+        return false;
+    }
+    if(tiles[x][y].father != nullptr){
+        Tile father = *tiles[x][y].father;
+        for(std::pair<int,int> son:father.sons){
+            if(tiles[son.first][son.second].type == Tile::Type::Empty){
+                continue;
+            }
+            tiles[son.first][son.second] = Tile();
+            tiles[son.first][son.second].label = new QLabel(this);
+            tiles[son.first][son.second].label->setGeometry(son.second * TILESIZE, son.first * TILESIZE, TILESIZE, TILESIZE);
+        }
+    }
+    tiles[x][y] = Tile();
+    tiles[x][y].label = new QLabel(this);
+    tiles[x][y].label->setGeometry(y * TILESIZE, x * TILESIZE, TILESIZE, TILESIZE);
+    return true;
 };
 
 int Map::getwidth() const{
