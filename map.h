@@ -9,6 +9,7 @@
 #include <QBrush>
 #include <QGraphicsRectItem>
 #include <QTimer>
+#include <QLabel>
 
 
 #define NORTH 0
@@ -40,6 +41,7 @@ public:
     QPixmap pixmap;//存储静态图像
     bool isAnimated;  // 标记是否需要动画
     int frameIndex;   // 当前显示的帧的索引
+    QLabel* label;    // 用于显示图像的 QLabel
 };
 
 
@@ -48,13 +50,11 @@ class Map : public QWidget{
 public:
     Map(int width, int height, QWidget* parent = nullptr);
     ~Map();
-    void setTile(int x, int y, Tile tile);
+    void setTile(int x, int y, Tile &tile);
     Tile getTile(int x, int y) const;
     int getwidth() const;
     int getheight() const;
 
-public:
-    void paintMap(QPainter* painter);
 
 private slots:
     void updateAnimationFrame();

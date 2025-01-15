@@ -163,6 +163,7 @@ Mainscene::Mainscene(QWidget *parent)
 
 Mainscene::~Mainscene()
 {
+    delete gamescene;
     delete ui;
 }
 
