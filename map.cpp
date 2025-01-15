@@ -37,7 +37,7 @@ void Map::setTile(int x, int y, Tile &tile) {
         if (tile.type == Tile::Type::Belt && !tile.images.empty()) {
             tiles[x][y].label->setPixmap(tile.images[tile.frameIndex]);
         } else {
-            tiles[x][y].label->setPixmap(tile.pixmap);
+            tiles[x][y].label->setPixmap(tile.image);
         }
         qDebug() << "successfully set pos("<<x<< ", " <<y<<") a new tile";
     }

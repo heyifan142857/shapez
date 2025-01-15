@@ -178,5 +178,13 @@
         <file>res/building_icons/virtual_processor.png</file>
         <file>res/building_icons/wire.png</file>
         <file>res/building_icons/wire_tunnel.png</file>
+        <file>res/colors/blue.png</file>
+        <file>res/colors/cyan.png</file>
+        <file>res/colors/green.png</file>
+        <file>res/colors/purple.png</file>
+        <file>res/colors/red.png</file>
+        <file>res/colors/uncolored.png</file>
+        <file>res/colors/white.png</file>
+        <file>res/colors/yellow.png</file>
     </qresource>
 </RCC>

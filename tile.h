@@ -19,21 +19,20 @@ public:
         Empty,
         Belt,
         Resource,
+        Color,
         Building
     };
 
-    Tile(): type(Type::Empty), resource(""), building(""), isAnimated(false) {}
-    Tile(Type type, const QString& resource = "", const QString& building = "");
+    Tile(): type(Type::Empty), name(""){}
+    Tile(Type type, const QString& name , int direction);
     Tile(Type type, int direction, QString state);
 
     Type type;        // Tile的类型（空白、传送带、资源、建筑）
     int direction; //朝向
     QString state; //传送带的种类
-    QString resource; // 资源的类型（如果是资源类型的话）
-    QString building; // 建筑的名称（如果是建筑类型的话）
+    QString name; // 名称
     QVector<QPixmap> images;//存储动态帧
-    QPixmap pixmap;//存储静态图像
-    bool isAnimated;  // 标记是否需要动画
+    QPixmap image;//存储静态图像
     int frameIndex;   // 当前显示的帧的索引
     QLabel* label;    // 用于显示图像的 QLabel
 };

@@ -15,10 +15,14 @@ Gamescene::Gamescene(QWidget *parent)
     Tile forwardBelt(Tile::Type::Belt, NORTH, "forward");
     Tile forwardBelt2(Tile::Type::Belt, EAST, "forward");
     Tile rightBelt(Tile::Type::Belt, NORTH, "right");
+    Tile northLever(Tile::Type::Building, "lever", NORTH);
+    Tile eastLever(Tile::Type::Building, "lever", EAST);
     map->setTile(0,0,rightBelt);
     map->setTile(1,0,forwardBelt);
     map->setTile(2,0,forwardBelt);
     map->setTile(0,1,forwardBelt2);
+    map->setTile(5,5,northLever);
+    map->setTile(5,6,eastLever);
 
     QVBoxLayout* layout = new QVBoxLayout(this);
     layout->addWidget(map);
