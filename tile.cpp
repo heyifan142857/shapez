@@ -6,6 +6,8 @@ Tile::Tile(Type type, int direction, const QString& name, std::pair<int,int> siz
     QPixmap scaledpixmap;
     int w = 0;
     int h = 0;
+    int f = size.first;
+    int s = size.second;
 
     QTransform transform;
     int angle;
@@ -15,12 +17,16 @@ Tile::Tile(Type type, int direction, const QString& name, std::pair<int,int> siz
         break;
     case WEST:
         angle = 270;
+        this->size.first = s;
+        this->size.second = f;
         break;
     case SOUTH:
         angle = 180;
         break;
     case EAST:
         angle = 90;
+        this->size.first = s;
+        this->size.second = f;
         break;
     default:
         angle = 0;
