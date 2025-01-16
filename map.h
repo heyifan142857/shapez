@@ -20,6 +20,7 @@ public:
     ~Map();
     void setTile(int x, int y, Tile &tile);
     Tile getTile(int x, int y) const;
+    //Tile::Type getTileType(int x, int y) const;
     bool deleteTile(int x, int y);
     int getwidth() const;
     int getheight() const;
@@ -29,7 +30,7 @@ private slots:
     void updateAnimationFrame();
 
 private:
-    QVector<QVector<Tile>> tiles;
+    QVector<QVector<Tile*>> tiles;
     int width, height;
     int frameIndex;
     QTimer* animationTimer;

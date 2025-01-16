@@ -31,6 +31,8 @@ public:
 
     ~Tile();
 
+    Tile(const Tile& other);
+
     Type type;        // Tile的类型（空白、传送带、资源、建筑）
     int direction; //朝向
     QString state; //传送带的种类

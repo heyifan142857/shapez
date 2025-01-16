@@ -147,3 +147,16 @@ Tile::~Tile(){
     }
     sons.clear();
 }
+
+Tile::Tile(const Tile& other) {
+    type = other.type;
+    direction = other.direction;
+    state = other.state;
+    name = other.name;
+    images = other.images;
+    image = other.image;
+    label = nullptr;
+    size = other.size;
+    father = nullptr;
+    sons.clear();
+}
