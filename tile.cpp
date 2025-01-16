@@ -27,9 +27,8 @@ Tile::Tile(Type type, int direction, const QString& name, std::pair<int,int> siz
         qWarning() << "undefined direction when construct a new Tile";
         break;
     }
-    transform.translate(TILESIZE / 2, TILESIZE / 2); // 设置旋转中心点
+    transform.translate(0, 0); // 设置旋转中心点为左上角
     transform.rotate(angle);
-    transform.translate(-TILESIZE / 2, -TILESIZE / 2); // 恢复原点
 
     switch (type) {
     case Tile::Type::Building:
@@ -104,9 +103,8 @@ Tile::Tile(Type type, QString state, int direction):
         qWarning() << "undefined direction when construct a new Tile";
         break;
     }
-    transform.translate(TILESIZE / 2, TILESIZE / 2); // 设置旋转中心点
+    transform.translate(0, 0); // 设置旋转中心点为左上角
     transform.rotate(angle);
-    transform.translate(-TILESIZE / 2, -TILESIZE / 2); // 恢复原点
 
     for (int i = 0; i < 14; ++i) {
         QPixmap pixmap;

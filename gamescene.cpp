@@ -27,14 +27,35 @@ Gamescene::Gamescene(QWidget *parent)
     map->setTile(0,1,forwardBelt2);
     map->setTile(5,5,northMiner);
     map->setTile(5,6,eastMiner);
+    map->setTile(17,0,forwardBelt);
 
-    QVBoxLayout* layout = new QVBoxLayout(this);
-    layout->addWidget(map);
-    setLayout(layout);
+    // QVBoxLayout* layout = new QVBoxLayout(this);
+    // layout->addWidget(map);
+    // setLayout(layout);
+    // 不使用布局管理器
+    map->setGeometry(0, 0, 1600, 900);
 }
 
 void Gamescene::paintEvent(QPaintEvent *event) {
-    QWidget::paintEvent(event);
+    QPainter painter(this);
+    QColor backgroundColor("#ECEEF2");
+    painter.fillRect(rect(), backgroundColor);//设置背景色
+
+    int tileSize = TILESIZE;
+
+    //画方格
+    QColor lineColor("#E3E7EA");
+    QPen pen(lineColor);
+    pen.setWidth(1);
+    painter.setPen(pen);
+
+    for (int y = 0; y < height(); y += tileSize) {
+        painter.drawLine(0, y, width(), y);
+    }
+
+    for (int x = 0; x < width(); x += tileSize) {
+        painter.drawLine(x, 0, x, height());
+    }
 }
 
 
