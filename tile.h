@@ -37,7 +37,6 @@ public:
     QString name; // 名称
     QVector<QPixmap> images;//存储动态帧
     QPixmap image;//存储静态图像
-    int frameIndex;   // 当前显示的帧的索引
     QLabel* label;    // 用于显示图像的 QLabel
     std::pair<int,int> size; //表示大小
     Tile* father = nullptr;

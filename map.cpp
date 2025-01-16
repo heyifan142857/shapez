@@ -2,7 +2,7 @@
 #include <QDebug>
 
 Map::Map(int height, int width, QWidget* parent) :
-    QWidget(parent), width(width), height(height) {
+    QWidget(parent), width(width), height(height), frameIndex(0) {
     if (width <= 0 || height <= 0) {
         qWarning() << "Invalid map dimensions:" << width << height;
         return;
@@ -36,10 +36,14 @@ void Map::setTile(int x, int y, Tile &tile) {
         tiles[x][y].label = new QLabel(this);
         tiles[x][y].label->setGeometry(y * TILESIZE, x * TILESIZE, tile.size.second * TILESIZE, tile.size.first * TILESIZE);
         if (tile.type == Tile::Type::Belt && !tile.images.empty()) {
-            tiles[x][y].label->setPixmap(tile.images[tile.frameIndex]);
+            if(frameIndex>tiles[x][y].images.size()){
+                qWarning() << "图片缺失";
+            }
+            tiles[x][y].label->setPixmap(tile.images[frameIndex]);
         } else {
             tiles[x][y].label->setPixmap(tile.image);
         }
+        tiles[x][y].label->show();
         qDebug() << "successfully set pos("<<x<< ", " <<y<<") a new tile";
     }
 
@@ -104,12 +108,15 @@ int Map::getheight() const{
 }
 
 void Map::updateAnimationFrame() {
+    frameIndex = (frameIndex + 1) % 14;  // 循环播放动画
     for (int x = 0; x < tiles.size(); ++x) {
         for (int y = 0; y < tiles[x].size(); ++y) {
             Tile& tile = tiles[x][y];
             if (tile.type == Tile::Type::Belt && !tile.images.empty()) {
-                tile.frameIndex = (tile.frameIndex + 1) % tile.images.size();  // 循环播放动画
-                tile.label->setPixmap(tile.images[tile.frameIndex]);  // 更新 QLabel 的图像
+                if(frameIndex > tile.images.size()){
+                    qWarning() << "图片缺失";
+                }
+                tile.label->setPixmap(tile.images[frameIndex]);  // 更新 QLabel 的图像
             }
         }
     }

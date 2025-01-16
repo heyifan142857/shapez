@@ -84,7 +84,7 @@ Tile::Tile(Type type, int direction, const QString& name, std::pair<int,int> siz
 //专门为Belt而写的构造函数，因为只有Belt会动
 Tile::Tile(Type type, QString state, int direction):
     type(type), direction(direction), state(state),
-    frameIndex(0),label(nullptr),size(std::make_pair(1,1)){
+    label(nullptr),size(std::make_pair(1,1)){
     if(type != Tile::Type::Belt){
         qDebug() << "Not belt";
     }

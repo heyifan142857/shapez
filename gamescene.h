@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QIcon>
 #include <QLabel>
+#include <QMouseEvent>
 #include "Map.h"
 
 class Gamescene : public QWidget
@@ -12,9 +13,14 @@ class Gamescene : public QWidget
 public:
     explicit Gamescene(QWidget *parent = nullptr);
 
-    void paintEvent(QPaintEvent *);
+    void mousePressEvent(QMouseEvent *event) override;
+
+    void paintEvent(QPaintEvent *) override;
 
     Map * map = nullptr;
+
+    bool isPlaceItem;
+    Tile* currentTile;
 
 signals:
 };

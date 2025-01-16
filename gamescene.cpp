@@ -2,7 +2,7 @@
 #include <QPushButton>
 
 Gamescene::Gamescene(QWidget *parent)
-    : QWidget{parent}
+    : isPlaceItem(false), currentTile(nullptr), QWidget{parent}
 {
     //编辑窗口基本信息
     setFixedSize(1600,900);
@@ -176,7 +176,15 @@ Gamescene::Gamescene(QWidget *parent)
         "}");
     trashbtn->move(1080,810);
 
-
+    connect(beltbtn, &QPushButton::clicked, this, [this]() {
+        qDebug() << "placing belt";
+        isPlaceItem = true;
+        if(currentTile){
+            delete currentTile;
+            currentTile = nullptr;
+        }
+        currentTile = new Tile(Tile::Type::Belt, "forward", NORTH);
+    });
 
     //测试
     Tile forwardBelt(Tile::Type::Belt, "forward", NORTH);
@@ -195,6 +203,37 @@ Gamescene::Gamescene(QWidget *parent)
     map->setTile(17,0,forwardBelt);
 
     map->setGeometry(0, 0, 1600, 900);
+}
+
+void Gamescene::mousePressEvent(QMouseEvent *event) {
+    if (!isPlaceItem) {
+        return;
+    }
+
+    int mouseX = event->pos().x();
+    int mouseY = event->pos().y();
+
+    int gridX = mouseY / TILESIZE; // 行号（Y 坐标）
+    int gridY = mouseX / TILESIZE; // 列号（X 坐标）
+
+    // 检查坐标是否在地图范围内
+    if (gridX < 0 || gridX >= map->getheight() || gridY < 0 || gridY >= map->getwidth()) {
+        qDebug() << "点击位置超出地图范围";
+        return;
+    }
+
+    if(map->getTile(gridX, gridY).type != Tile::Type::Empty){
+        qDebug() << "该位置已有Tile";
+        return;
+    }
+
+    map->setTile(gridX, gridY, *currentTile);
+
+    isPlaceItem = false;
+    delete(currentTile);
+    currentTile = nullptr;
+
+    update();
 }
 
 void Gamescene::paintEvent(QPaintEvent *event) {

@@ -31,6 +31,7 @@ private slots:
 private:
     QVector<QVector<Tile>> tiles;
     int width, height;
+    int frameIndex;
     QTimer* animationTimer;
 };
 
