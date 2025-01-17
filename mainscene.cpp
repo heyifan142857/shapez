@@ -33,7 +33,7 @@ Mainscene::Mainscene(QWidget *parent)
                           "QPushButton:hover {"
                           "background-color: rgb(95,160,222);"
                           "}");
-    newbtn->move(812,324);
+    newbtn->move(812,424);
     newbtn->resize(264,66);
     QFont font1("Microsoft YaHei", 16, QFont::Normal);
     newbtn->setFont(font1);
@@ -48,7 +48,7 @@ Mainscene::Mainscene(QWidget *parent)
                            "QPushButton:hover {"
                            "background-color: rgb(95,160,222);"
                            "}");
-    readbtn->move(812,402);
+    readbtn->move(812,502);
     readbtn->resize(264,60);
     QFont font2("Microsoft YaHei", 16, QFont::Normal);
     readbtn->setFont(font2);
@@ -63,7 +63,7 @@ Mainscene::Mainscene(QWidget *parent)
                                "QPushButton:hover {"
                                "background-color: rgb(89,180,96);"
                                "}");
-    continuebtn->move(524,324);
+    continuebtn->move(524,424);
     continuebtn->resize(264,144);
     QFont font3("Microsoft YaHei", 20, QFont::Normal);
     continuebtn->setFont(font3);
@@ -199,7 +199,7 @@ void Mainscene::paintEvent(QPaintEvent *){
     QBrush brush(QColor(255,255,255));
     painter.setBrush(brush);
     painter.setPen(Qt::NoPen);
-    painter.drawRoundedRect(500,300,600,400,10,10);
+    painter.drawRoundedRect(500,350,600,300,10,10);
 
     pix.load(":/res/logo.png");
     painter.drawPixmap(450,60,pix);

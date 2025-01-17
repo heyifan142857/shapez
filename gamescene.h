@@ -5,6 +5,7 @@
 #include <QIcon>
 #include <QLabel>
 #include <QMouseEvent>
+#include <QPushButton>
 #include "Map.h"
 
 class Gamescene : public QWidget
@@ -29,6 +30,16 @@ public:
     Tile* currentTile;
 
 private:
+    QPushButton * beltbtn;
+    QPushButton * balancerbtn;
+    QPushButton * underground_beltbtn;
+    QPushButton * minerbtn;
+    QPushButton * cutterbtn;
+    QPushButton * rotaterbtn;
+    QPushButton * stackerbtn;
+    QPushButton * mixerbtn;
+    QPushButton * painterbtn;
+    QPushButton * trashbtn;
     bool isDragging;
 
 signals:
