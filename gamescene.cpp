@@ -1,5 +1,7 @@
 #include "gamescene.h"
+#include "item.h"
 #include <QPropertyAnimation>
+#include <QVBoxLayout>
 
 Gamescene::Gamescene(QWidget *parent)
     : isPlaceItem(false), currentTile(nullptr), QWidget{parent}
@@ -13,7 +15,22 @@ Gamescene::Gamescene(QWidget *parent)
     map = new Map(18,32,this);
     Tile Hub(Tile::Type::Hub);
     map->setTile(7,14,Hub);
+
+    Tile ResSquare = Tile(Tile::Type::Resource,NORTH,"square");
+    map->setTile(0,0,ResSquare);
+    map->setTile(0,1,ResSquare);
+    map->setTile(1,0,ResSquare);
+
+    Tile ResCircle = Tile(Tile::Type::Resource,NORTH,"circle");
+    map->setTile(17,0,ResCircle);
+    map->setTile(16,0,ResCircle);
+    map->setTile(17,1,ResCircle);
     qDebug() << "successfully build map";
+
+    // test = new QLabel(this);
+    // //QPixmap combinedPixmap = Item(SQUARE,SQUARE,SQUARE,SQUARE).getPixmap();
+    // QPixmap combinedPixmap = Item(CIRCLE,CIRCLE,CIRCLE,CIRCLE).getPixmap();
+    // test->setPixmap(combinedPixmap);
 
     isDragging = false;
     defaultBeltDirection = NORTH;
@@ -542,20 +559,20 @@ Gamescene::Gamescene(QWidget *parent)
 
 
     //测试
-    Tile forwardBelt(Tile::Type::Belt, "forward", NORTH);
-    Tile forwardBelt2(Tile::Type::Belt, "forward", EAST);
-    Tile rightBelt(Tile::Type::Belt, "right", NORTH);
-    Tile northMiner(Tile::Type::Building, NORTH, "miner-chainable");
-    Tile eastMiner(Tile::Type::Building, EAST, "miner-chainable");
-    Tile northCutter(Tile::Type::Building, EAST, "cutter", std::make_pair(1,2));
-    map->setTile(0,0,rightBelt);
-    map->setTile(1,0,forwardBelt);
-    map->setTile(2,0,forwardBelt);
-    map->setTile(0,1,forwardBelt2);
-    map->setTile(5,5,northMiner);
-    map->setTile(5,6,eastMiner);
-    map->setTile(2,20,northCutter);
-    map->setTile(17,0,forwardBelt);
+    // Tile forwardBelt(Tile::Type::Belt, "forward", NORTH);
+    // Tile forwardBelt2(Tile::Type::Belt, "forward", EAST);
+    // Tile rightBelt(Tile::Type::Belt, "right", NORTH);
+    // Tile northMiner(Tile::Type::Building, NORTH, "miner-chainable");
+    // Tile eastMiner(Tile::Type::Building, EAST, "miner-chainable");
+    // Tile northCutter(Tile::Type::Building, EAST, "cutter", std::make_pair(1,2));
+    // map->setTile(0,0,rightBelt);
+    // map->setTile(1,0,forwardBelt);
+    // map->setTile(2,0,forwardBelt);
+    // map->setTile(0,1,forwardBelt2);
+    // map->setTile(5,5,northMiner);
+    // map->setTile(5,6,eastMiner);
+    // map->setTile(2,20,northCutter);
+    // map->setTile(17,0,forwardBelt);
     //map->deleteTile(2,20);
 
     map->setGeometry(0, 0, 1600, 900);

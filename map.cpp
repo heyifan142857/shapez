@@ -88,8 +88,8 @@ bool Map::deleteTile(int x, int y){
     if(tiles[x][y]->type == Tile::Type::Empty){
         return true;
     }
-    if(tiles[x][y]->type == Tile::Type::Hub){
-        qDebug() << "Hub cannot be destoryed";
+    if(tiles[x][y]->type == Tile::Type::Hub || tiles[x][y]->type == Tile::Type::Resource){
+        qDebug() << "Hub/Resource cannot be destoryed";
         return false;
     }
     if(tiles[x][y]->father != nullptr){
@@ -150,4 +150,5 @@ void Map::updateAnimationFrame() {
         }
     }
 }
+
 

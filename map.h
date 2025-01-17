@@ -25,7 +25,6 @@ public:
     int getwidth() const;
     int getheight() const;
 
-
 private slots:
     void updateAnimationFrame();
 

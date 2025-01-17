@@ -1,4 +1,6 @@
+#include <QPainter>
 #include "tile.h"
+#include "item.h"
 
 Tile::Tile(Type type, int direction, const QString& name, std::pair<int,int> size):
     type(type), name(name), direction(direction), label(nullptr), size(size){
@@ -68,9 +70,13 @@ Tile::Tile(Type type, int direction, const QString& name, std::pair<int,int> siz
         image = scaledpixmap;
         break;
     case Tile::Type::Resource:
-        qDebug() << "Tile::Type::Resource unfinish";
-        pixmap.fill(Qt::white);
-        image = pixmap.scaled(TILESIZE, TILESIZE);
+        if(name == "circle"){
+            image = Item().drawCircle();
+        }else if(name == "square"){
+            image = Item().drawSquare();
+        }else{
+            qDebug() << "undefined resource";
+        }
         break;
     default:
         qDebug() << "undefined type";

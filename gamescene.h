@@ -30,6 +30,7 @@ public:
     Tile* currentTile;
 
 private:
+    //QLabel * test;
     int defaultBeltDirection;
     QPushButton * beltbtn;
     QPushButton * balancerbtn;

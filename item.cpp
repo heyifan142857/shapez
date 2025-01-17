@@ -1,0 +1,137 @@
+#include "item.h"
+#include "tile.h"
+#include <QPainter>
+#include <QColor>
+
+Item::Item(int part1,int part2,int part3,int part4):
+    part1(part1),part2(part2),part3(part3),part4(part4),
+    label(nullptr),speed(0),direction(NONEDIREECTION),cuttable(false){
+
+}
+
+Item::~Item(){
+    if(label){
+        delete label;
+        label = nullptr;
+    }
+}
+
+QPixmap Item::getPixmap() {
+    int size = 16; // 每个小部分的大小
+
+    QPixmap circle(TILESIZE, TILESIZE);
+    circle.fill(Qt::transparent);
+    QPixmap square(TILESIZE, TILESIZE);
+    square.fill(Qt::transparent);
+    QPen pen(Qt::black);
+    pen.setWidth(2);
+    QRectF rectangle(9, 9, 2*size, 2*size);
+
+    QPainter painter1(&circle);
+    painter1.setRenderHint(QPainter::Antialiasing);
+    painter1.setPen(pen);
+    painter1.setBrush(QColor("#9EA1A3"));
+    painter1.drawEllipse(rectangle);
+    painter1.drawLine(9, size+9, 2*size+9, size+9);
+    painter1.drawLine(size+9, 9, size+9, 2*size+9);
+
+    QPainter painter2(&square);
+    painter2.setRenderHint(QPainter::Antialiasing);
+    painter2.setPen(pen);
+    painter2.setBrush(QColor("#9EA1A3"));
+    painter2.drawRect(rectangle);
+    painter2.drawLine(9, size+9, 2*size+9, size+9);
+    painter2.drawLine(size+9, 9, size+9, 2*size+9);
+
+    QPixmap pixmap1;
+    QPixmap pixmap2;
+    QPixmap pixmap3;
+    QPixmap pixmap4;
+
+    auto cutShape = [=](QPixmap &pixmap, int type ,int part) {
+        QRect cropRect((part%2)*(TILESIZE/2), (part/2)*(TILESIZE/2), (TILESIZE/2), (TILESIZE/2));
+        if (type == SQUARE){
+            pixmap = square.copy(cropRect);
+        }
+        if (type == CIRCLE){
+            pixmap = circle.copy(cropRect);
+        }
+        if (type == EMPTY){
+            pixmap.scaled((TILESIZE/2),(TILESIZE/2));
+            pixmap.fill(Qt::transparent);
+        }
+    };
+
+    cutShape(pixmap1,part1,0);
+    cutShape(pixmap2,part2,1);
+    cutShape(pixmap3,part3,2);
+    cutShape(pixmap4,part4,3);
+
+    // 创建组合图像
+    QPixmap combinedPixmap(TILESIZE, TILESIZE);
+    combinedPixmap.fill(Qt::transparent);
+
+    QPainter combinedPainter(&combinedPixmap);
+    combinedPainter.drawPixmap(0, 0, pixmap1); // 左上角
+    combinedPainter.drawPixmap(TILESIZE/2, 0, pixmap2); // 右上角
+    combinedPainter.drawPixmap(0, TILESIZE/2, pixmap3); // 左下角
+    combinedPainter.drawPixmap(TILESIZE/2, TILESIZE/2, pixmap4); // 右下角
+
+    return combinedPixmap;
+}
+
+QPixmap Item::drawSquare(){
+    int size = 16;
+
+    QPixmap square(TILESIZE, TILESIZE);
+    square.fill(Qt::transparent);
+    QPen pen(Qt::black);
+    pen.setWidth(2);
+    QRectF rectangle(9, 9, 2*size, 2*size);
+
+    QPainter painter(&square);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(pen);
+    painter.setBrush(QColor("#9EA1A3"));
+    painter.drawRect(rectangle);
+    painter.drawLine(9, size+9, 2*size+9, size+9);
+    painter.drawLine(size+9, 9, size+9, 2*size+9);
+
+    return square;
+}
+QPixmap Item::drawCircle(){
+    int size = 16;
+
+    QPixmap circle(TILESIZE, TILESIZE);
+    circle.fill(Qt::transparent);
+    QPen pen(Qt::black);
+    pen.setWidth(2);
+    QRectF rectangle(9, 9, 2*size, 2*size);
+
+    QPainter painter(&circle);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(pen);
+    painter.setBrush(QColor("#9EA1A3"));
+    painter.drawEllipse(rectangle);
+    painter.drawLine(9, size+9, 2*size+9, size+9);
+    painter.drawLine(size+9, 9, size+9, 2*size+9);
+
+    return circle;
+}
+
+bool Item::ableToConbine(Item other){
+    if((part1!=EMPTY&&other.part1!=EMPTY)||(part2!=EMPTY&&other.part2!=EMPTY)||(part3!=EMPTY&&other.part3!=EMPTY)||(part4!=EMPTY&&other.part4!=EMPTY)){
+        return false;
+    }else{
+        return true;
+    }
+}
+
+Item Item::operator+(const Item& other) const {
+    Item result;
+    result.part1 = this->part1 + other.part1;
+    result.part2 = this->part2 + other.part2;
+    result.part3 = this->part3 + other.part3;
+    result.part4 = this->part4 + other.part4;
+    return result;
+}
