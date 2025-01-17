@@ -612,10 +612,8 @@ void Gamescene::mousePressEvent(QMouseEvent *event) {
 
 // void Gamescene::mouseMoveEvent(QMouseEvent *event) {
 //     if (isPlaceItem) {
-//         QPointF globalMousePos = event->globalPosition();
-//         QPoint localMousePos = mapFromGlobal(globalMousePos.toPoint());
-//         QPoint newPos = localMousePos - QPoint(imageLabel->width() / 2, imageLabel->height() / 2);
-//         imageLabel->move(newPos);
+//         QPoint mousePos = QCursor::pos();
+//         imageLabel->move(mousePos.x() - TILESIZE / 2, mousePos.y() - TILESIZE / 2);
 //     }
 // }
 

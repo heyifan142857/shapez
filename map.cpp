@@ -64,7 +64,7 @@ void Map::setTile(int x, int y, Tile &tile) {
                     delete tiles[x + i][y + j];
                     tiles[x + i][y + j] = new Tile(tile);
                     tiles[x + i][y + j]->label = new QLabel(this);
-                    tiles[x + i][y + j]->father = tiles[x][y];
+                    tiles[x + i][y + j]->father = new std::pair<int, int>(x,y);
                     tiles[x][y]->sons.push_back(std::make_pair(x + i, y + j));
                 }
             }
@@ -78,7 +78,7 @@ Tile Map::getTile(int x, int y) const{
         qWarning() << "Map::getTile x,y is out of range";
     }
     if(tiles[x][y]->father != nullptr){
-        return *(tiles[x][y]->father);
+        return *(tiles[tiles[x][y]->father->first][tiles[x][y]->father->second]);
     }
     return *tiles[x][y];
 };
@@ -93,8 +93,8 @@ bool Map::deleteTile(int x, int y){
         return false;
     }
     if(tiles[x][y]->father != nullptr){
-        Tile father = *tiles[x][y]->father;
-        for(std::pair<int,int> son:father.sons){
+        std::pair<int,int>* father = tiles[x][y]->father;
+        for(std::pair<int,int> son:tiles[father->first][father->second]->sons){
             if(tiles[son.first][son.second]->type == Tile::Type::Empty){
                 continue;
             }
@@ -103,12 +103,29 @@ bool Map::deleteTile(int x, int y){
             tiles[son.first][son.second]->label = new QLabel(this);
             tiles[son.first][son.second]->label->setGeometry(son.second * TILESIZE, son.first * TILESIZE, TILESIZE, TILESIZE);
         }
+        delete tiles[father->first][father->second];
+        tiles[father->first][father->second] = new Tile();
+        tiles[father->first][father->second]->label = new QLabel(this);
+        tiles[father->first][father->second]->label->setGeometry(father->second * TILESIZE, father->first * TILESIZE, TILESIZE, TILESIZE);
+        return true;
+    }else{
+        if(tiles[x][y]->size != std::make_pair(1,1)){
+            for(std::pair<int,int> son:tiles[x][y]->sons){
+                if(tiles[son.first][son.second]->type == Tile::Type::Empty){
+                    continue;
+                }
+                delete tiles[son.first][son.second];
+                tiles[son.first][son.second] = new Tile();
+                tiles[son.first][son.second]->label = new QLabel(this);
+                tiles[son.first][son.second]->label->setGeometry(son.second * TILESIZE, son.first * TILESIZE, TILESIZE, TILESIZE);
+            }
+        }
+        delete tiles[x][y];
+        tiles[x][y] = new Tile();
+        tiles[x][y]->label = new QLabel(this);
+        tiles[x][y]->label->setGeometry(y * TILESIZE, x * TILESIZE, TILESIZE, TILESIZE);
+        return true;
     }
-    delete tiles[x][y];
-    tiles[x][y] = new Tile();
-    tiles[x][y]->label = new QLabel(this);
-    tiles[x][y]->label->setGeometry(y * TILESIZE, x * TILESIZE, TILESIZE, TILESIZE);
-    return true;
 };
 
 int Map::getwidth() const{

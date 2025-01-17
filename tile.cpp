@@ -167,6 +167,10 @@ Tile::~Tile(){
         delete label;
         label = nullptr;
     }
+    if(father){
+        delete father;
+        father = nullptr;
+    }
     sons.clear();
 }
 

@@ -43,7 +43,7 @@ public:
     QPixmap image;//存储静态图像
     QLabel* label;    // 用于显示图像的 QLabel
     std::pair<int,int> size; //表示大小
-    Tile* father = nullptr;
+    std::pair<int,int>* father = nullptr;
     QVector<std::pair<int,int>> sons;
 };
 

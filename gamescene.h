@@ -28,6 +28,7 @@ public:
 
 private:
     //QLabel *imageLabel;
+    // QTimer *imageLabelTimer;
 
 signals:
 };
