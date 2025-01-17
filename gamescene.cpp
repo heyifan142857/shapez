@@ -16,6 +16,7 @@ Gamescene::Gamescene(QWidget *parent)
     qDebug() << "successfully build map";
 
     isDragging = false;
+    defaultBeltDirection = NORTH;
 
     //建立底部建筑按钮
     beltbtn = new QPushButton();
@@ -49,7 +50,7 @@ Gamescene::Gamescene(QWidget *parent)
                 delete currentTile;
                 currentTile = nullptr;
             }
-            currentTile = new Tile(Tile::Type::Belt, "forward", NORTH);
+            currentTile = new Tile(Tile::Type::Belt, "forward", defaultBeltDirection);
         }
     });
 
@@ -635,6 +636,9 @@ void Gamescene::keyPressEvent(QKeyEvent *event){
         if (event->key() == Qt::Key_R) {
             qDebug() << "press R";
             currentTile->changeDirection();
+            if(currentTile->type == Tile::Type::Belt){
+                defaultBeltDirection = (defaultBeltDirection+1)%4;
+            }
         }
         if (event->key() == Qt::Key_T) {
             qDebug() << "press T";

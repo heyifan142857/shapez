@@ -30,6 +30,7 @@ public:
     Tile* currentTile;
 
 private:
+    int defaultBeltDirection;
     QPushButton * beltbtn;
     QPushButton * balancerbtn;
     QPushButton * underground_beltbtn;
