@@ -9,8 +9,13 @@
 #include <QGraphicsRectItem>
 #include <QTimer>
 #include <QLabel>
+#include <QHash>
+#include <QUuid>
+#include <QSharedPointer>
+#include <QList>
 
 #include "tile.h"
+#include "item.h"
 
 
 class Map : public QWidget{
@@ -25,6 +30,8 @@ public:
     int getwidth() const;
     int getheight() const;
 
+    void moveItems();
+
 private slots:
     void updateAnimationFrame();
 
@@ -33,6 +40,9 @@ private:
     int width, height;
     int frameIndex;
     QTimer* animationTimer;
+
+    QHash<QUuid, QSharedPointer<Item>> items;
+    QList<std::pair<int,int>> miners;
 };
 
 #endif // MAP_H

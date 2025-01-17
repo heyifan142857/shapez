@@ -35,6 +35,19 @@ Gamescene::Gamescene(QWidget *parent)
     isDragging = false;
     defaultBeltDirection = NORTH;
 
+    //计时器
+    itemMoveTimer = new QTimer(this);
+    connect(itemMoveTimer, &QTimer::timeout, this, [this]() {
+        map->moveItems();
+    });
+    itemMoveTimer->start(50);
+
+    minerTimer = new QTimer(this);
+    connect(minerTimer, &QTimer::timeout, this, [this]() {
+        //todo
+    });
+    itemMoveTimer->start(400);
+
     //建立底部建筑按钮
     beltbtn = new QPushButton();
     beltbtn->setParent(this);
@@ -594,7 +607,7 @@ void Gamescene::mousePressEvent(QMouseEvent *event) {
             return;
         }
 
-        if(map->getTile(gridX, gridY).type != Tile::Type::Empty){
+        if(map->getTile(gridX, gridY).type != Tile::Type::Empty && !(map->getTile(gridX, gridY).type == Tile::Type::Resource && currentTile->type == Tile::Type::Building && currentTile->name == "miner")){
             qDebug() << "pos("<< gridX <<","<< gridY <<") already has a Tile";
             return;
         }

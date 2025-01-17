@@ -238,4 +238,5 @@ Tile::Tile(const Tile& other) {
     size = other.size;
     father = nullptr;
     sons.clear();
+    mine = other.mine;
 }

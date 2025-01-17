@@ -2,6 +2,9 @@
 #define ITEM_H
 #include <QLabel>
 #include <QPixmap>
+#include <QString>
+#include <QUuid>
+
 
 #define EMPTY 0
 #define SQUARE 1
@@ -17,8 +20,11 @@ class Item
 {
 public:
     Item():part1(EMPTY),part2(EMPTY),part3(EMPTY),part4(EMPTY),
-        label(nullptr),speed(0),direction(NONEDIREECTION),cuttable(false){}
+        label(nullptr),speed(0),direction(NONEDIREECTION),cuttable(false){
+        id = QUuid::createUuid();
+    }
     Item(int part1,int part2,int part3,int part4);
+    Item(QString mine);
     ~Item();
 
     QPixmap getPixmap();
@@ -34,6 +40,7 @@ public:
     int part3;
     int part4;
     QLabel* label;
+    QUuid id;
 private:
     int speed;
     int direction;

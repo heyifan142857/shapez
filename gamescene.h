@@ -32,6 +32,7 @@ public:
 private:
     //QLabel * test;
     int defaultBeltDirection;
+
     QPushButton * beltbtn;
     QPushButton * balancerbtn;
     QPushButton * underground_beltbtn;
@@ -42,7 +43,11 @@ private:
     QPushButton * mixerbtn;
     QPushButton * painterbtn;
     QPushButton * trashbtn;
+
     bool isDragging;
+
+    QTimer* itemMoveTimer;
+    QTimer* minerTimer;
 
 signals:
 };

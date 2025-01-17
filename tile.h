@@ -46,6 +46,7 @@ public:
     std::pair<int,int> size; //表示大小
     std::pair<int,int>* father = nullptr;
     QVector<std::pair<int,int>> sons;
+    Tile* mine = nullptr;//为miner准备的
 };
 
 #endif // TILE_H

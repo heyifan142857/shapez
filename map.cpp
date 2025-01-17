@@ -28,6 +28,18 @@ Map::~Map() {
 
 void Map::setTile(int x, int y, Tile &tile) {
     qDebug() << "setting pos("<<x<<", "<<y<<") a new tile";
+    if(tile.type == Tile::Type::Building && tile.name == "miner"){
+        if(tiles[x][y]->type == Tile::Type::Resource){
+            tile.mine = tiles[x][y];
+            tiles[x][y] = new Tile(tile);
+            tiles[x][y]->label = new QLabel(this);
+            tiles[x][y]->label->setGeometry(y * TILESIZE, x * TILESIZE, tile.size.second * TILESIZE, tile.size.first * TILESIZE);
+            tiles[x][y]->label->setPixmap(tile.image);
+            tiles[x][y]->label->show();
+            qDebug() << "successfully set pos("<<x<< ", " <<y<<") a new tile";
+            return;
+        }
+    }
     for (int i = 0; i < tile.size.first; ++i) {
         for (int j = 0; j < tile.size.second; ++j){
             if(tiles[x + i][y + j]->type != Tile::Type::Empty){
@@ -92,6 +104,12 @@ bool Map::deleteTile(int x, int y){
         qDebug() << "Hub/Resource cannot be destoryed";
         return false;
     }
+    if(tiles[x][y]->type == Tile::Type::Building && tiles[x][y]->name == "miner" && tiles[x][y]->mine){
+        Tile* temp = tiles[x][y];
+        tiles[x][y] = new Tile(*temp->mine);
+        delete temp;
+        return true;
+    }
     if(tiles[x][y]->father != nullptr){
         std::pair<int,int>* father = tiles[x][y]->father;
         for(std::pair<int,int> son:tiles[father->first][father->second]->sons){
@@ -134,6 +152,10 @@ int Map::getwidth() const{
 
 int Map::getheight() const{
     return height;
+}
+
+void Map::moveItems() {
+    //todo
 }
 
 void Map::updateAnimationFrame() {

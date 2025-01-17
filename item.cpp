@@ -2,11 +2,36 @@
 #include "tile.h"
 #include <QPainter>
 #include <QColor>
+#include <QDebug>
 
 Item::Item(int part1,int part2,int part3,int part4):
     part1(part1),part2(part2),part3(part3),part4(part4),
     label(nullptr),speed(0),direction(NONEDIREECTION),cuttable(false){
+    id = QUuid::createUuid();
+}
 
+Item::Item(QString mine):label(nullptr),speed(0),direction(NONEDIREECTION){
+    id = QUuid::createUuid();
+    if(mine == "square"){
+        cuttable = true;
+        part1 = SQUARE;
+        part2 = SQUARE;
+        part3 = SQUARE;
+        part4 = SQUARE;
+    }else if(mine == "circle"){
+        cuttable = false;
+        part1 = CIRCLE;
+        part2 = CIRCLE;
+        part3 = CIRCLE;
+        part4 = CIRCLE;
+    }else{
+        qDebug() << "wrong name of mine";
+        cuttable = false;
+        part1 = EMPTY;
+        part2 = EMPTY;
+        part3 = EMPTY;
+        part4 = EMPTY;
+    }
 }
 
 Item::~Item(){
