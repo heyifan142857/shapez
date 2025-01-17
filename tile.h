@@ -30,6 +30,7 @@ public:
     Tile(Type type, QString name = "Hub");//Hub构造函数
 
     void changeDirection();
+    void changeState();
 
     ~Tile();
 

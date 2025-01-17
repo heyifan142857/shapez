@@ -16,6 +16,8 @@ Gamescene::Gamescene(QWidget *parent)
     map->setTile(7,14,Hub);
     qDebug() << "successfully build map";
 
+    isDragging = false;
+
     //建立底部建筑按钮
     QPushButton * beltbtn = new QPushButton();
     beltbtn->setParent(this);
@@ -590,6 +592,7 @@ void Gamescene::mousePressEvent(QMouseEvent *event) {
         }
 
         map->setTile(gridX, gridY, *currentTile);
+        isDragging = true;
 
         isPlaceItem = false;
         delete(currentTile);
@@ -610,18 +613,42 @@ void Gamescene::mousePressEvent(QMouseEvent *event) {
     }
 }
 
-// void Gamescene::mouseMoveEvent(QMouseEvent *event) {
-//     if (isPlaceItem) {
-//         QPoint mousePos = QCursor::pos();
-//         imageLabel->move(mousePos.x() - TILESIZE / 2, mousePos.y() - TILESIZE / 2);
-//     }
-// }
+void Gamescene::mouseMoveEvent(QMouseEvent *event) {
+    // if (isDragging && isPlaceItem && currentTile && currentTile->type == Tile::Type::Belt) {
+    //     int mouseX = event->pos().x();
+    //     int mouseY = event->pos().y();
+
+    //     int gridX = mouseY / TILESIZE;
+    //     int gridY = mouseX / TILESIZE;
+
+    //     if (gridX < 0 || gridX >= map->getheight() || gridY < 0 || gridY >= map->getwidth()) {
+    //         return;
+    //     }
+
+    //     if(map->getTile(gridX, gridY).type != Tile::Type::Empty){
+    //         return;
+    //     }
+
+    //     map->setTile(gridX, gridY, *currentTile);
+    //     qDebug() << "dragging";
+    // }
+}
+
+void Gamescene::mouseReleaseEvent(QMouseEvent *event) {
+    if (event->button() == Qt::LeftButton) {
+        isDragging = false;  // 结束拖动
+    }
+}
 
 void Gamescene::keyPressEvent(QKeyEvent *event){
     if (isPlaceItem && currentTile) {
         if (event->key() == Qt::Key_R) {
             qDebug() << "press R";
             currentTile->changeDirection();
+        }
+        if (event->key() == Qt::Key_T) {
+            qDebug() << "press T";
+            currentTile->changeState();
         }
     }
 }

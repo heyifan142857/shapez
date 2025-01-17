@@ -162,6 +162,53 @@ void Tile::changeDirection(){
     }
 }
 
+void Tile::changeState(){
+    if(type == Tile::Type::Belt){
+        QTransform transform;
+        int angle;
+        switch (direction) {
+        case NORTH:
+            angle = 0;
+            break;
+        case WEST:
+            angle = 270;
+            break;
+        case SOUTH:
+            angle = 180;
+            break;
+        case EAST:
+            angle = 90;
+            break;
+        default:
+            angle = 0;
+            qWarning() << "undefined direction when construct a new Tile";
+            break;
+        }
+        transform.translate(0, 0); // 设置旋转中心点为左上角
+        transform.rotate(angle);
+
+        if(state == "forward"){
+            state = "left";
+        }else if(state == "left"){
+            state = "right";
+        }else if(state == "right"){
+            state = "forward";
+        }else{
+            qDebug() << "fail to rotate";
+        }
+
+        for (int i = 0; i < 14; ++i) {
+            QPixmap pixmap;
+            if (!pixmap.load(QString(":/res/belt/%1_%2.png").arg(state).arg(i))) {
+                qWarning() << "Failed to load image:" << QString(":/res/belt/%1_%2.png").arg(state).arg(i);
+                continue;  // 忽略加载失败的图像
+            }
+            QPixmap scaledpixmap = pixmap.scaled(TILESIZE, TILESIZE, Qt::KeepAspectRatio).transformed(transform);
+            images[i] = scaledpixmap;
+        }
+    }
+};
+
 Tile::~Tile(){
     if (label) {
         delete label;
