@@ -1,5 +1,6 @@
 #include "gamescene.h"
 #include <QPushButton>
+#include <QPropertyAnimation>
 
 Gamescene::Gamescene(QWidget *parent)
     : isPlaceItem(false), currentTile(nullptr), QWidget{parent}
@@ -51,6 +52,23 @@ Gamescene::Gamescene(QWidget *parent)
         }
     });
 
+    QPropertyAnimation *beltbtnanimation = new QPropertyAnimation(beltbtn, "geometry");
+    beltbtnanimation->setDuration(100);
+    beltbtnanimation->setEasingCurve(QEasingCurve::OutQuad);
+    QRect beltbtnGeometry = beltbtn->geometry();
+    connect(beltbtn,&QPushButton::pressed,this,[=](){
+        QRect rect = beltbtn->geometry();
+        beltbtnanimation->setStartValue(rect);
+        beltbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.05, rect.y() + rect.height() * 0.05,
+                                           rect.width() * 0.9, rect.height() * 0.9));
+        beltbtnanimation->start();
+    });
+    connect(beltbtn,&QPushButton::released,this,[=]() {
+        beltbtnanimation->setStartValue(beltbtn->geometry());
+        beltbtnanimation->setEndValue(beltbtnGeometry);
+        beltbtnanimation->start();
+    });
+
     QPushButton * balancerbtn = new QPushButton();
     balancerbtn->setParent(this);
     balancerbtn->setFixedSize(70, 70);
@@ -84,6 +102,24 @@ Gamescene::Gamescene(QWidget *parent)
             }
             currentTile = new Tile(Tile::Type::Building, NORTH, "balancer",std::make_pair(1,2));
         }
+    });
+
+    QPropertyAnimation *balancerbtnanimation = new QPropertyAnimation(balancerbtn, "geometry");
+    balancerbtnanimation->setDuration(100);
+    balancerbtnanimation->setEasingCurve(QEasingCurve::OutQuad);
+    QRect balancerbtnGeometry = balancerbtn->geometry();
+    connect(balancerbtn,&QPushButton::pressed,this,[=](){
+        qDebug() << "点击新游戏";
+        QRect rect = balancerbtn->geometry();
+        balancerbtnanimation->setStartValue(rect);
+        balancerbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
+                                           rect.width() * 0.95, rect.height() * 0.95));
+        balancerbtnanimation->start();
+    });
+    connect(balancerbtn,&QPushButton::released,this,[=]() {
+        balancerbtnanimation->setStartValue(balancerbtn->geometry());
+        balancerbtnanimation->setEndValue(balancerbtnGeometry);
+        balancerbtnanimation->start();
     });
 
     QPushButton * underground_beltbtn = new QPushButton();
@@ -121,6 +157,24 @@ Gamescene::Gamescene(QWidget *parent)
         }
     });
 
+    QPropertyAnimation *underground_beltbtnanimation = new QPropertyAnimation(underground_beltbtn, "geometry");
+    underground_beltbtnanimation->setDuration(100);
+    underground_beltbtnanimation->setEasingCurve(QEasingCurve::OutQuad);
+    QRect underground_beltbtnGeometry = underground_beltbtn->geometry();
+    connect(underground_beltbtn,&QPushButton::pressed,this,[=](){
+        qDebug() << "点击新游戏";
+        QRect rect = underground_beltbtn->geometry();
+        underground_beltbtnanimation->setStartValue(rect);
+        underground_beltbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
+                                           rect.width() * 0.95, rect.height() * 0.95));
+        underground_beltbtnanimation->start();
+    });
+    connect(underground_beltbtn,&QPushButton::released,this,[=]() {
+        underground_beltbtnanimation->setStartValue(underground_beltbtn->geometry());
+        underground_beltbtnanimation->setEndValue(underground_beltbtnGeometry);
+        underground_beltbtnanimation->start();
+    });
+
     QPushButton * minerbtn = new QPushButton();
     minerbtn->setParent(this);
     minerbtn->setFixedSize(70, 70);
@@ -154,6 +208,24 @@ Gamescene::Gamescene(QWidget *parent)
             }
             currentTile = new Tile(Tile::Type::Building, NORTH, "miner");
         }
+    });
+
+    QPropertyAnimation *minerbtnanimation = new QPropertyAnimation(minerbtn, "geometry");
+    minerbtnanimation->setDuration(100);
+    minerbtnanimation->setEasingCurve(QEasingCurve::OutQuad);
+    QRect minerbtnGeometry = minerbtn->geometry();
+    connect(minerbtn,&QPushButton::pressed,this,[=](){
+        qDebug() << "点击新游戏";
+        QRect rect = minerbtn->geometry();
+        minerbtnanimation->setStartValue(rect);
+        minerbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
+                                           rect.width() * 0.95, rect.height() * 0.95));
+        minerbtnanimation->start();
+    });
+    connect(minerbtn,&QPushButton::released,this,[=]() {
+        minerbtnanimation->setStartValue(minerbtn->geometry());
+        minerbtnanimation->setEndValue(minerbtnGeometry);
+        minerbtnanimation->start();
     });
 
     QPushButton * cutterbtn = new QPushButton();
@@ -191,6 +263,24 @@ Gamescene::Gamescene(QWidget *parent)
         }
     });
 
+    QPropertyAnimation *cutterbtnanimation = new QPropertyAnimation(cutterbtn, "geometry");
+    cutterbtnanimation->setDuration(100);
+    cutterbtnanimation->setEasingCurve(QEasingCurve::OutQuad);
+    QRect cutterbtnGeometry = cutterbtn->geometry();
+    connect(cutterbtn,&QPushButton::pressed,this,[=](){
+        qDebug() << "点击新游戏";
+        QRect rect = cutterbtn->geometry();
+        cutterbtnanimation->setStartValue(rect);
+        cutterbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
+                                           rect.width() * 0.95, rect.height() * 0.95));
+        cutterbtnanimation->start();
+    });
+    connect(cutterbtn,&QPushButton::released,this,[=]() {
+        cutterbtnanimation->setStartValue(cutterbtn->geometry());
+        cutterbtnanimation->setEndValue(cutterbtnGeometry);
+        cutterbtnanimation->start();
+    });
+
     QPushButton * rotaterbtn = new QPushButton();
     rotaterbtn->setParent(this);
     rotaterbtn->setFixedSize(70, 70);
@@ -224,6 +314,24 @@ Gamescene::Gamescene(QWidget *parent)
             }
             currentTile = new Tile(Tile::Type::Building, NORTH, "rotater");
         }
+    });
+
+    QPropertyAnimation *rotaterbtnanimation = new QPropertyAnimation(rotaterbtn, "geometry");
+    rotaterbtnanimation->setDuration(100);
+    rotaterbtnanimation->setEasingCurve(QEasingCurve::OutQuad);
+    QRect rotaterbtnGeometry = rotaterbtn->geometry();
+    connect(rotaterbtn,&QPushButton::pressed,this,[=](){
+        qDebug() << "点击新游戏";
+        QRect rect = rotaterbtn->geometry();
+        rotaterbtnanimation->setStartValue(rect);
+        rotaterbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
+                                           rect.width() * 0.95, rect.height() * 0.95));
+        rotaterbtnanimation->start();
+    });
+    connect(rotaterbtn,&QPushButton::released,this,[=]() {
+        rotaterbtnanimation->setStartValue(rotaterbtn->geometry());
+        rotaterbtnanimation->setEndValue(rotaterbtnGeometry);
+        rotaterbtnanimation->start();
     });
 
     QPushButton * stackerbtn = new QPushButton();
@@ -261,6 +369,24 @@ Gamescene::Gamescene(QWidget *parent)
         }
     });
 
+    QPropertyAnimation *stackerbtnanimation = new QPropertyAnimation(stackerbtn, "geometry");
+    stackerbtnanimation->setDuration(100);
+    stackerbtnanimation->setEasingCurve(QEasingCurve::OutQuad);
+    QRect stackerbtnGeometry = stackerbtn->geometry();
+    connect(stackerbtn,&QPushButton::pressed,this,[=](){
+        qDebug() << "点击新游戏";
+        QRect rect = stackerbtn->geometry();
+        stackerbtnanimation->setStartValue(rect);
+        stackerbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
+                                           rect.width() * 0.95, rect.height() * 0.95));
+        stackerbtnanimation->start();
+    });
+    connect(stackerbtn,&QPushButton::released,this,[=]() {
+        stackerbtnanimation->setStartValue(stackerbtn->geometry());
+        stackerbtnanimation->setEndValue(stackerbtnGeometry);
+        stackerbtnanimation->start();
+    });
+
     QPushButton * mixerbtn = new QPushButton();
     mixerbtn->setParent(this);
     mixerbtn->setFixedSize(70, 70);
@@ -294,6 +420,24 @@ Gamescene::Gamescene(QWidget *parent)
             }
             currentTile = new Tile(Tile::Type::Building, NORTH, "mixer", std::make_pair(1,2));
         }
+    });
+
+    QPropertyAnimation *mixerbtnanimation = new QPropertyAnimation(mixerbtn, "geometry");
+    mixerbtnanimation->setDuration(100);
+    mixerbtnanimation->setEasingCurve(QEasingCurve::OutQuad);
+    QRect mixerbtnGeometry = mixerbtn->geometry();
+    connect(mixerbtn,&QPushButton::pressed,this,[=](){
+        qDebug() << "点击新游戏";
+        QRect rect = mixerbtn->geometry();
+        mixerbtnanimation->setStartValue(rect);
+        mixerbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
+                                           rect.width() * 0.95, rect.height() * 0.95));
+        mixerbtnanimation->start();
+    });
+    connect(mixerbtn,&QPushButton::released,this,[=]() {
+        mixerbtnanimation->setStartValue(mixerbtn->geometry());
+        mixerbtnanimation->setEndValue(mixerbtnGeometry);
+        mixerbtnanimation->start();
     });
 
     QPushButton * painterbtn = new QPushButton();
@@ -331,6 +475,24 @@ Gamescene::Gamescene(QWidget *parent)
         }
     });
 
+    QPropertyAnimation *painterbtnanimation = new QPropertyAnimation(painterbtn, "geometry");
+    painterbtnanimation->setDuration(100);
+    painterbtnanimation->setEasingCurve(QEasingCurve::OutQuad);
+    QRect painterbtnGeometry = painterbtn->geometry();
+    connect(painterbtn,&QPushButton::pressed,this,[=](){
+        qDebug() << "点击新游戏";
+        QRect rect = painterbtn->geometry();
+        painterbtnanimation->setStartValue(rect);
+        painterbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
+                                           rect.width() * 0.95, rect.height() * 0.95));
+        painterbtnanimation->start();
+    });
+    connect(painterbtn,&QPushButton::released,this,[=]() {
+        painterbtnanimation->setStartValue(painterbtn->geometry());
+        painterbtnanimation->setEndValue(painterbtnGeometry);
+        painterbtnanimation->start();
+    });
+
     QPushButton * trashbtn = new QPushButton();
     trashbtn->setParent(this);
     trashbtn->setFixedSize(70, 70);
@@ -366,6 +528,24 @@ Gamescene::Gamescene(QWidget *parent)
         }
     });
 
+    QPropertyAnimation *trashbtnanimation = new QPropertyAnimation(trashbtn, "geometry");
+    trashbtnanimation->setDuration(100);
+    trashbtnanimation->setEasingCurve(QEasingCurve::OutQuad);
+    QRect trashbtnGeometry = trashbtn->geometry();
+    connect(trashbtn,&QPushButton::pressed,this,[=](){
+        qDebug() << "点击新游戏";
+        QRect rect = trashbtn->geometry();
+        trashbtnanimation->setStartValue(rect);
+        trashbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
+                                           rect.width() * 0.95, rect.height() * 0.95));
+        trashbtnanimation->start();
+    });
+    connect(trashbtn,&QPushButton::released,this,[=]() {
+        trashbtnanimation->setStartValue(trashbtn->geometry());
+        trashbtnanimation->setEndValue(trashbtnGeometry);
+        trashbtnanimation->start();
+    });
+
 
 
     //测试
@@ -389,32 +569,63 @@ Gamescene::Gamescene(QWidget *parent)
 }
 
 void Gamescene::mousePressEvent(QMouseEvent *event) {
-    if (!isPlaceItem) {
-        return;
-    }
-
     int mouseX = event->pos().x();
     int mouseY = event->pos().y();
 
     int gridX = mouseY / TILESIZE; // 行号（Y 坐标）
     int gridY = mouseX / TILESIZE; // 列号（X 坐标）
+    if (event->button() == Qt::LeftButton) {
+        if (!isPlaceItem) {
+            return;
+        }
+        // 检查坐标是否在地图范围内
+        if (gridX < 0 || gridX >= map->getheight() || gridY < 0 || gridY >= map->getwidth()) {
+            qDebug() << "点击位置超出地图范围";
+            return;
+        }
 
-    // 检查坐标是否在地图范围内
-    if (gridX < 0 || gridX >= map->getheight() || gridY < 0 || gridY >= map->getwidth()) {
-        qDebug() << "点击位置超出地图范围";
-        return;
+        if(map->getTile(gridX, gridY).type != Tile::Type::Empty){
+            qDebug() << "pos("<< gridX <<","<< gridY <<") already has a Tile";
+            return;
+        }
+
+        map->setTile(gridX, gridY, *currentTile);
+
+        isPlaceItem = false;
+        delete(currentTile);
+        currentTile = nullptr;
     }
-
-    if(map->getTile(gridX, gridY).type != Tile::Type::Empty){
-        qDebug() << "pos("<< gridX <<","<< gridY <<") already has a Tile";
-        return;
+    if (event->button() == Qt::RightButton) {
+        if (isPlaceItem) {
+            isPlaceItem = false;
+            delete(currentTile);
+            currentTile = nullptr;
+        }else{
+            if (gridX < 0 || gridX >= map->getheight() || gridY < 0 || gridY >= map->getwidth()) {
+                qDebug() << "点击位置超出地图范围";
+                return;
+            }
+            map->deleteTile(gridX, gridY);
+        }
     }
+}
 
-    map->setTile(gridX, gridY, *currentTile);
+// void Gamescene::mouseMoveEvent(QMouseEvent *event) {
+//     if (isPlaceItem) {
+//         QPointF globalMousePos = event->globalPosition();
+//         QPoint localMousePos = mapFromGlobal(globalMousePos.toPoint());
+//         QPoint newPos = localMousePos - QPoint(imageLabel->width() / 2, imageLabel->height() / 2);
+//         imageLabel->move(newPos);
+//     }
+// }
 
-    isPlaceItem = false;
-    delete(currentTile);
-    currentTile = nullptr;
+void Gamescene::keyPressEvent(QKeyEvent *event){
+    if (isPlaceItem && currentTile) {
+        if (event->key() == Qt::Key_R) {
+            qDebug() << "press R";
+            currentTile->changeDirection();
+        }
+    }
 }
 
 void Gamescene::paintEvent(QPaintEvent *event) {

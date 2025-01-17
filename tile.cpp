@@ -140,6 +140,28 @@ Tile::Tile(Type type, QString name):type(type), name(name),label(nullptr), size(
     image = scaledpixmap;
 };
 
+void Tile::changeDirection(){
+    QTransform transform;
+    int angle = 90;
+    transform.translate(0, 0); // 设置旋转中心点为左上角
+    transform.rotate(angle);
+
+    int f = size.first;
+    int s = size.second;
+    size.first = s;
+    size.second = f;
+
+    direction = (direction+1)%4;
+
+    if(type == Tile::Type::Belt){
+        for (int i = 0; i < 14; ++i) {
+            images[i] = images[i].transformed(transform);
+        }
+    }else{
+        image = image.transformed(transform);
+    }
+}
+
 Tile::~Tile(){
     if (label) {
         delete label;

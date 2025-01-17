@@ -15,12 +15,19 @@ public:
 
     void mousePressEvent(QMouseEvent *event) override;
 
+    //void mouseMoveEvent(QMouseEvent *event) override;
+
+    void keyPressEvent(QKeyEvent *event) override;
+
     void paintEvent(QPaintEvent *) override;
 
     Map * map = nullptr;
 
     bool isPlaceItem;
     Tile* currentTile;
+
+private:
+    //QLabel *imageLabel;
 
 signals:
 };

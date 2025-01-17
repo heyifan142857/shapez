@@ -7,9 +7,9 @@
 #include <QLabel>
 
 #define NORTH 0
-#define SOUTH 1
-#define WEST 2
-#define EAST 3
+#define EAST 1
+#define SOUTH 2
+#define WEST 3
 
 #define TILESIZE 50
 
@@ -24,10 +24,12 @@ public:
         Building
     };
 
-    Tile(): type(Type::Empty), name(""), label(nullptr), size(std::make_pair(1,1)){}
+    Tile(): type(Type::Empty), name(""), label(nullptr), direction(NORTH), size(std::make_pair(1,1)){}
     Tile(Type type, int direction, const QString& name, std::pair<int,int> size = std::make_pair(1,1));
     Tile(Type type, QString state, int direction);//Belt构造函数
     Tile(Type type, QString name = "Hub");//Hub构造函数
+
+    void changeDirection();
 
     ~Tile();
 
