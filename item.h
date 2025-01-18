@@ -20,11 +20,11 @@ class Item
 {
 public:
     Item():part1(EMPTY),part2(EMPTY),part3(EMPTY),part4(EMPTY),
-        label(nullptr),speed(0),direction(NONEDIREECTION),cuttable(false){
-        id = QUuid::createUuid();
+        label(nullptr),cuttable(false),pos(std::make_pair(0,0)){
+
     }
-    Item(int part1,int part2,int part3,int part4);
-    Item(QString mine);
+    Item(int part1,int part2,int part3,int part4, std::pair<int,int> pos = std::make_pair(0,0));
+    Item(QString mine, std::pair<int,int> pos = std::make_pair(0,0));
     ~Item();
 
     QPixmap getPixmap();
@@ -35,15 +35,14 @@ public:
 
     Item operator+(const Item& other) const;
 
+    std::pair<int,int> pos;
+
     int part1;
     int part2;
     int part3;
     int part4;
     QLabel* label;
-    QUuid id;
 private:
-    int speed;
-    int direction;
     bool cuttable;
 };
 

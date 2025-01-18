@@ -4,14 +4,14 @@
 #include <QColor>
 #include <QDebug>
 
-Item::Item(int part1,int part2,int part3,int part4):
+Item::Item(int part1,int part2,int part3,int part4,std::pair<int,int> pos):
     part1(part1),part2(part2),part3(part3),part4(part4),
-    label(nullptr),speed(0),direction(NONEDIREECTION),cuttable(false){
-    id = QUuid::createUuid();
+    pos(pos),label(nullptr),cuttable(false){
+
 }
 
-Item::Item(QString mine):label(nullptr),speed(0),direction(NONEDIREECTION){
-    id = QUuid::createUuid();
+Item::Item(QString mine,std::pair<int,int> pos):label(nullptr),pos(pos){
+
     if(mine == "square"){
         cuttable = true;
         part1 = SQUARE;

@@ -29,8 +29,14 @@ public:
     bool deleteTile(int x, int y);
     int getwidth() const;
     int getheight() const;
+    std::pair<int,int> nextPox(int x,int y,Tile &currentTile);
+    std::pair<int,int> nextPox(std::pair<int,int> originaPos,Tile &currentTile);
+    bool inMap(int x,int y);
+    bool inMap(std::pair<int,int> originaPos);
 
     void moveItems();
+
+    void performMining();
 
 private slots:
     void updateAnimationFrame();
@@ -41,7 +47,6 @@ private:
     int frameIndex;
     QTimer* animationTimer;
 
-    QHash<QUuid, QSharedPointer<Item>> items;
     QList<std::pair<int,int>> miners;
 };
 

@@ -1,6 +1,6 @@
 #include <QPainter>
 #include "tile.h"
-#include "item.h"
+
 
 Tile::Tile(Type type, int direction, const QString& name, std::pair<int,int> size):
     type(type), name(name), direction(direction), label(nullptr), size(size){
@@ -223,6 +223,9 @@ Tile::~Tile(){
     if(father){
         delete father;
         father = nullptr;
+    }
+    if(item){
+        delete item;
     }
     sons.clear();
 }

@@ -6,6 +6,8 @@
 #include <QString>
 #include <QLabel>
 
+#include "item.h"
+
 #define NORTH 0
 #define EAST 1
 #define SOUTH 2
@@ -47,6 +49,7 @@ public:
     std::pair<int,int>* father = nullptr;
     QVector<std::pair<int,int>> sons;
     Tile* mine = nullptr;//为miner准备的
+    Item* item = nullptr;//显示矿物
 };
 
 #endif // TILE_H

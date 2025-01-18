@@ -1,5 +1,6 @@
-#include "map.h"
 #include <QDebug>
+#include <QMutableListIterator>
+#include "map.h"
 
 Map::Map(int height, int width, QWidget* parent) :
     QWidget(parent), width(width), height(height), frameIndex(0) {
@@ -31,14 +32,18 @@ void Map::setTile(int x, int y, Tile &tile) {
     if(tile.type == Tile::Type::Building && tile.name == "miner"){
         if(tiles[x][y]->type == Tile::Type::Resource){
             tile.mine = tiles[x][y];
-            tiles[x][y] = new Tile(tile);
-            tiles[x][y]->label = new QLabel(this);
-            tiles[x][y]->label->setGeometry(y * TILESIZE, x * TILESIZE, tile.size.second * TILESIZE, tile.size.first * TILESIZE);
-            tiles[x][y]->label->setPixmap(tile.image);
-            tiles[x][y]->label->show();
-            qDebug() << "successfully set pos("<<x<< ", " <<y<<") a new tile";
-            return;
+            miners.append(std::make_pair(x,y));
+            qDebug() << "add a mine to miners";
+        }else{
+            delete tiles[x][y];
         }
+        tiles[x][y] = new Tile(tile);
+        tiles[x][y]->label = new QLabel(this);
+        tiles[x][y]->label->setGeometry(y * TILESIZE, x * TILESIZE, tile.size.second * TILESIZE, tile.size.first * TILESIZE);
+        tiles[x][y]->label->setPixmap(tile.image);
+        tiles[x][y]->label->show();
+        qDebug() << "successfully set pos("<<x<< ", " <<y<<") a new tile";
+        return;
     }
     for (int i = 0; i < tile.size.first; ++i) {
         for (int j = 0; j < tile.size.second; ++j){
@@ -170,6 +175,161 @@ void Map::updateAnimationFrame() {
                 tile->label->setPixmap(tile->images[frameIndex]);  // 更新 QLabel 的图像
             }
         }
+    }
+}
+
+void Map::performMining(){
+    if(!miners.empty()){
+        QMutableListIterator<std::pair<int, int>> it(miners);
+
+        while (it.hasNext()) {
+            std::pair<int,int> pos = it.next();
+            if(tiles[pos.first][pos.second]->type!=Tile::Type::Building || tiles[pos.first][pos.second]->name!="miner"){
+                it.remove();
+                qDebug() << "delete a invalid miner in list miners";
+            }else{
+                std::pair<int,int> generatePos = nextPox(pos,*tiles[pos.first][pos.second]);
+                if(!inMap(generatePos)){
+                    qDebug() << "miner out of map";
+                    return;
+                }
+                if(tiles[generatePos.first][generatePos.second]->type == Tile::Type::Belt && tiles[generatePos.first][generatePos.second]->direction==tiles[pos.first][pos.second]->direction){
+                    if(tiles[generatePos.first][generatePos.second]->item == nullptr){
+                        QString minename = tiles[pos.first][pos.second]->mine->name;
+                        tiles[generatePos.first][generatePos.second]->item = new Item(minename,generatePos);
+                        tiles[generatePos.first][generatePos.second]->item->label = new QLabel(this);
+                        tiles[generatePos.first][generatePos.second]->item->label->setGeometry(generatePos.second * TILESIZE, generatePos.first * TILESIZE, TILESIZE, TILESIZE);
+                        QPixmap minePixmap = tiles[generatePos.first][generatePos.second]->item->getPixmap();
+                        tiles[generatePos.first][generatePos.second]->item->label->setPixmap(minePixmap);
+                        tiles[generatePos.first][generatePos.second]->item->label->show();
+                        //tiles[generatePos.first][generatePos.second]->item->label->raise();
+                    }
+                }
+            }
+        }
+    }
+}
+
+std::pair<int,int> Map::nextPox(int x,int y,Tile &currentTile){
+    std::pair<int,int> newPos;
+    if(currentTile.type != Tile::Type::Belt){
+        switch (currentTile.direction) {
+        case NORTH:
+            newPos = std::make_pair(x-1,y);
+            break;
+        case EAST:
+            newPos = std::make_pair(x,y+1);
+            break;
+        case SOUTH:
+            newPos = std::make_pair(x+1,y);
+            break;
+        case WEST:
+            newPos = std::make_pair(x,y-1);
+            break;
+        default:
+            newPos = std::make_pair(x, y);
+            break;
+        }
+    }else{
+        int beltDirection = currentTile.direction;
+        if(currentTile.state == "left"){
+            beltDirection = (beltDirection+3)%4;
+        }
+        if(currentTile.state == "right"){
+            beltDirection = (beltDirection+1)%4;
+        }
+
+        switch (beltDirection) {
+        case NORTH:
+            newPos = std::make_pair(x-1,y);
+            break;
+        case EAST:
+            newPos = std::make_pair(x,y+1);
+            break;
+        case SOUTH:
+            newPos = std::make_pair(x+1,y);
+            break;
+        case WEST:
+            newPos = std::make_pair(x,y-1);
+            break;
+        default:
+            newPos = std::make_pair(x, y);
+            break;
+        }
+    }
+
+    return newPos;
+}
+std::pair<int,int> Map::nextPox(std::pair<int,int> originaPos,Tile &currentTile){
+    int x = originaPos.first;
+    int y = originaPos.second;
+
+    std::pair<int,int> newPos;
+    if(currentTile.type != Tile::Type::Belt){
+        switch (currentTile.direction) {
+        case NORTH:
+            newPos = std::make_pair(x-1,y);
+            break;
+        case EAST:
+            newPos = std::make_pair(x,y+1);
+            break;
+        case SOUTH:
+            newPos = std::make_pair(x+1,y);
+            break;
+        case WEST:
+            newPos = std::make_pair(x,y-1);
+            break;
+        default:
+            newPos = std::make_pair(x, y);
+            break;
+        }
+    }else{
+        int beltDirection = currentTile.direction;
+        if(currentTile.state == "left"){
+            beltDirection = (beltDirection+3)%4;
+        }
+        if(currentTile.state == "right"){
+            beltDirection = (beltDirection+1)%4;
+        }
+
+        switch (beltDirection) {
+        case NORTH:
+            newPos = std::make_pair(x-1,y);
+            break;
+        case EAST:
+            newPos = std::make_pair(x,y+1);
+            break;
+        case SOUTH:
+            newPos = std::make_pair(x+1,y);
+            break;
+        case WEST:
+            newPos = std::make_pair(x,y-1);
+            break;
+        default:
+            newPos = std::make_pair(x, y);
+            break;
+        }
+    }
+
+    return newPos;
+}
+
+bool Map::inMap(int x,int y){
+    if( x<0 || y<0 || x>=height || y>=width){
+        return false;
+    }else{
+        return true;
+    }
+}
+
+bool Map::inMap(std::pair<int,int> originaPos){
+    int x = originaPos.first;
+    int y = originaPos.second;
+
+    if( x<0 || y<0 || x>=height || y>=width){
+        return false;
+    }else{
+        return true;
     }
 }
 
