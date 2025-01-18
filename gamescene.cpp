@@ -39,15 +39,16 @@ Gamescene::Gamescene(QWidget *parent)
     itemMoveTimer = new QTimer(this);
     connect(itemMoveTimer, &QTimer::timeout, this, [this]() {
         map->moveItems();
+        //qDebug() << "moving mining";
     });
-    itemMoveTimer->start(50);
+    itemMoveTimer->start(400);
 
     minerTimer = new QTimer(this);
     connect(minerTimer, &QTimer::timeout, this, [this]() {
         map->performMining();
         //qDebug() << "perform mining";
     });
-    minerTimer->start(400);
+    minerTimer->start(1600);
 
     //建立底部建筑按钮
     beltbtn = new QPushButton();

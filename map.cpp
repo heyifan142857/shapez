@@ -100,6 +100,20 @@ Tile Map::getTile(int x, int y) const{
     return *tiles[x][y];
 };
 
+Tile Map::getTile(std::pair<int,int> pos) const{
+    int x = pos.first;
+    int y = pos.second;
+
+    if(x >= tiles.size() || y >= (tiles.empty()?0:tiles[0].size()) ||
+        x < 0 || y < 0){
+        qWarning() << "Map::getTile x,y is out of range";
+    }
+    if(tiles[x][y]->father != nullptr){
+        return *(tiles[tiles[x][y]->father->first][tiles[x][y]->father->second]);
+    }
+    return *tiles[x][y];
+}
+
 bool Map::deleteTile(int x, int y){
     qDebug() << "Deleting tile at (" << x << ", " << y << ")";
     if(tiles[x][y]->type == Tile::Type::Empty){
@@ -160,6 +174,55 @@ int Map::getheight() const{
 }
 
 void Map::moveItems() {
+    for (int x = 0; x < height; ++x) {
+        for (int y = 0; y < width; ++y) {
+            if(tiles[x][y]->father != nullptr){
+                continue;
+            }
+            if(tiles[x][y]->type != Tile::Type::Belt){
+                continue;
+            }
+            if(tiles[x][y]->item == nullptr){
+                continue;
+            }
+            std::pair<int,int> newPos = nextPox(x,y,*tiles[x][y]);
+            //Tile nextTile = getTile(newPos);
+            if(!inMap(newPos) || tiles[newPos.first][newPos.second]->type == Tile::Type::Color || tiles[newPos.first][newPos.second]->type == Tile::Type::Empty || tiles[newPos.first][newPos.second]->type == Tile::Type::Resource){
+                continue;
+            }
+            if(tiles[newPos.first][newPos.second]->type == Tile::Type::Belt){
+                if(tiles[newPos.first][newPos.second]->item != nullptr){
+                    continue;
+                }
+                int realDirection = tiles[x][y]->direction;
+                if(tiles[x][y]->type == Tile::Type::Belt){
+                    if(tiles[x][y]->state == "left"){
+                        realDirection = (realDirection+3)%4;
+                    }
+                    if(tiles[x][y]->state == "right"){
+                        realDirection = (realDirection+1)%4;
+                    }
+                }
+                if(realDirection != tiles[newPos.first][newPos.second]->direction){
+                    continue;
+                }
+                Item *item = tiles[x][y]->item;
+                tiles[item->pos.first][item->pos.second]->item = nullptr;
+                item->pos = newPos;
+                tiles[newPos.first][newPos.second]->item = item;
+                tiles[newPos.first][newPos.second]->item->label->move(newPos.second * TILESIZE, newPos.first * TILESIZE);
+                tiles[newPos.first][newPos.second]->item->label->raise();
+                //todo
+            }else if(tiles[newPos.first][newPos.second]->type == Tile::Type::Building){
+                //todo
+            }else if(tiles[newPos.first][newPos.second]->type == Tile::Type::Hub){
+                Item *tempItem = tiles[x][y]->item;
+                tiles[x][y]->item = nullptr;
+                delete tempItem;
+                //todo
+            }
+        }
+    }
     //todo
 }
 
@@ -202,7 +265,8 @@ void Map::performMining(){
                         QPixmap minePixmap = tiles[generatePos.first][generatePos.second]->item->getPixmap();
                         tiles[generatePos.first][generatePos.second]->item->label->setPixmap(minePixmap);
                         tiles[generatePos.first][generatePos.second]->item->label->show();
-                        //tiles[generatePos.first][generatePos.second]->item->label->raise();
+                        tiles[generatePos.first][generatePos.second]->item->label->raise();
+                        //tiles[generatePos.first][generatePos.second]->item->label->setAttribute(Qt::WA_AlwaysStackOnTop, true);;
                     }
                 }
             }
