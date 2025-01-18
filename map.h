@@ -15,7 +15,7 @@
 #include <QList>
 
 #include "tile.h"
-#include "item.h"
+//#include "item.h"
 
 
 class Map : public QWidget{
@@ -43,6 +43,8 @@ public:
 
     void performMining();
 
+    void cutterUpdate();
+
     void itemToHub(int part1, int part2, int part3, int part4);
 
 private slots:
@@ -51,6 +53,7 @@ private slots:
 public:
     QLabel* questionLabel = nullptr;
     QLabel* countLabel = nullptr;
+    QLabel* levelLabel = nullptr;
 
     int questionLever;
 

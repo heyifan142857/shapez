@@ -188,5 +188,11 @@
         <file>res/colors/yellow.png</file>
         <file>res/github.png</file>
         <file>res/font/ComicNeue-Bold.ttf</file>
+        <file>res/sounds/destroy_building.wav</file>
+        <file>res/sounds/level_complete.wav</file>
+        <file>res/sounds/place_belt.wav</file>
+        <file>res/sounds/place_building.wav</file>
+        <file>res/sounds/ui_click.wav</file>
+        <file>res/sounds/unlock_upgrade.wav</file>
     </qresource>
 </RCC>

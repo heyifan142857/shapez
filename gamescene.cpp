@@ -4,6 +4,7 @@
 #include <QVBoxLayout>
 #include <QFont>
 #include <QFontDatabase>
+#include <QSoundEffect>
 
 Gamescene::Gamescene(QWidget *parent)
     : isPlaceItem(false), currentTile(nullptr), QWidget{parent}
@@ -48,6 +49,8 @@ Gamescene::Gamescene(QWidget *parent)
     font.setPointSize(28);
     font.setFamily(fontFamily);
     map->countLabel->setFont(font);
+    font.setPointSize(18);
+    map->levelLabel->setFont(font);
 
     // test = new QLabel(this);
     // //QPixmap combinedPixmap = Item(SQUARE,SQUARE,SQUARE,SQUARE).getPixmap();
@@ -63,19 +66,49 @@ Gamescene::Gamescene(QWidget *parent)
         map->moveItems();
         //qDebug() << "moving mining";
         map->countLabel->setText(QString("%1\n/%2").arg(map->current).arg(map->target));
+        map->levelLabel->setText(QString("%1").arg(map->questionLever+1));
+        map->levelLabel->raise();
         if(map->current >= map->target){
             map->questionLever++;
             setPuzzle();
         }
     });
-    itemMoveTimer->start(400);
+    itemMoveTimer->start(800);
 
     minerTimer = new QTimer(this);
     connect(minerTimer, &QTimer::timeout, this, [this]() {
         map->performMining();
         //qDebug() << "perform mining";
     });
-    minerTimer->start(1600);
+    minerTimer->start(3200);
+
+    cutterTimer = new QTimer(this);
+    connect(cutterTimer, &QTimer::timeout, this, [this]() {
+        map->cutterUpdate();
+    });
+    cutterTimer->start(6400);
+
+
+    QSoundEffect level_completeEffect;
+    level_completeEffect.setSource(QUrl::fromLocalFile(":/res/sounds/level_complete.wav"));
+    level_completeEffect.setVolume(0.5f);
+
+    QSoundEffect destroy_buildingEffect;
+    destroy_buildingEffect.setSource(QUrl::fromLocalFile(":/res/sounds/destroy_building.wav"));
+    destroy_buildingEffect.setVolume(0.5f);
+
+    QSoundEffect place_beltEffect;
+    place_beltEffect.setSource(QUrl::fromLocalFile(":/res/sounds/place_belt.wav"));
+    place_beltEffect.setVolume(0.5f);
+
+    QSoundEffect place_buildingEffect;
+    place_buildingEffect.setSource(QUrl::fromLocalFile(":/res/sounds/place_building.wav"));
+    place_buildingEffect.setVolume(0.5f);
+
+    QSoundEffect ui_clickEffect;
+    ui_clickEffect.setSource(QUrl::fromLocalFile(":/res/sounds/ui_click.wav"));
+    ui_clickEffect.setVolume(0.5f);
+
 
     //建立底部建筑按钮
     beltbtn = new QPushButton();
@@ -121,7 +154,7 @@ Gamescene::Gamescene(QWidget *parent)
         QRect rect = beltbtn->geometry();
         beltbtnanimation->setStartValue(rect);
         beltbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.05, rect.y() + rect.height() * 0.05,
-                                           rect.width() * 0.9, rect.height() * 0.9));
+                                            rect.width() * 0.9, rect.height() * 0.9));
         beltbtnanimation->start();
     });
     connect(beltbtn,&QPushButton::released,this,[=]() {
@@ -173,7 +206,7 @@ Gamescene::Gamescene(QWidget *parent)
         QRect rect = balancerbtn->geometry();
         balancerbtnanimation->setStartValue(rect);
         balancerbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
-                                           rect.width() * 0.95, rect.height() * 0.95));
+                                                rect.width() * 0.95, rect.height() * 0.95));
         balancerbtnanimation->start();
     });
     connect(balancerbtn,&QPushButton::released,this,[=]() {
@@ -225,7 +258,7 @@ Gamescene::Gamescene(QWidget *parent)
         QRect rect = underground_beltbtn->geometry();
         underground_beltbtnanimation->setStartValue(rect);
         underground_beltbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
-                                           rect.width() * 0.95, rect.height() * 0.95));
+                                                        rect.width() * 0.95, rect.height() * 0.95));
         underground_beltbtnanimation->start();
     });
     connect(underground_beltbtn,&QPushButton::released,this,[=]() {
@@ -277,7 +310,7 @@ Gamescene::Gamescene(QWidget *parent)
         QRect rect = minerbtn->geometry();
         minerbtnanimation->setStartValue(rect);
         minerbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
-                                           rect.width() * 0.95, rect.height() * 0.95));
+                                             rect.width() * 0.95, rect.height() * 0.95));
         minerbtnanimation->start();
     });
     connect(minerbtn,&QPushButton::released,this,[=]() {
@@ -329,7 +362,7 @@ Gamescene::Gamescene(QWidget *parent)
         QRect rect = cutterbtn->geometry();
         cutterbtnanimation->setStartValue(rect);
         cutterbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
-                                           rect.width() * 0.95, rect.height() * 0.95));
+                                              rect.width() * 0.95, rect.height() * 0.95));
         cutterbtnanimation->start();
     });
     connect(cutterbtn,&QPushButton::released,this,[=]() {
@@ -381,7 +414,7 @@ Gamescene::Gamescene(QWidget *parent)
         QRect rect = rotaterbtn->geometry();
         rotaterbtnanimation->setStartValue(rect);
         rotaterbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
-                                           rect.width() * 0.95, rect.height() * 0.95));
+                                               rect.width() * 0.95, rect.height() * 0.95));
         rotaterbtnanimation->start();
     });
     connect(rotaterbtn,&QPushButton::released,this,[=]() {
@@ -433,7 +466,7 @@ Gamescene::Gamescene(QWidget *parent)
         QRect rect = stackerbtn->geometry();
         stackerbtnanimation->setStartValue(rect);
         stackerbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
-                                           rect.width() * 0.95, rect.height() * 0.95));
+                                               rect.width() * 0.95, rect.height() * 0.95));
         stackerbtnanimation->start();
     });
     connect(stackerbtn,&QPushButton::released,this,[=]() {
@@ -485,7 +518,7 @@ Gamescene::Gamescene(QWidget *parent)
         QRect rect = mixerbtn->geometry();
         mixerbtnanimation->setStartValue(rect);
         mixerbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
-                                           rect.width() * 0.95, rect.height() * 0.95));
+                                             rect.width() * 0.95, rect.height() * 0.95));
         mixerbtnanimation->start();
     });
     connect(mixerbtn,&QPushButton::released,this,[=]() {
@@ -537,7 +570,7 @@ Gamescene::Gamescene(QWidget *parent)
         QRect rect = painterbtn->geometry();
         painterbtnanimation->setStartValue(rect);
         painterbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
-                                           rect.width() * 0.95, rect.height() * 0.95));
+                                               rect.width() * 0.95, rect.height() * 0.95));
         painterbtnanimation->start();
     });
     connect(painterbtn,&QPushButton::released,this,[=]() {
@@ -589,7 +622,7 @@ Gamescene::Gamescene(QWidget *parent)
         QRect rect = trashbtn->geometry();
         trashbtnanimation->setStartValue(rect);
         trashbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
-                                           rect.width() * 0.95, rect.height() * 0.95));
+                                             rect.width() * 0.95, rect.height() * 0.95));
         trashbtnanimation->start();
     });
     connect(trashbtn,&QPushButton::released,this,[=]() {
@@ -623,21 +656,22 @@ Gamescene::Gamescene(QWidget *parent)
 void Gamescene::setPuzzle(){
     map->current = 0;
     if(map->questionLever == 0){
-        map->target = 10;
+        map->target = 20;
         QPixmap level_1 = Item().drawPixmap(CIRCLE,CIRCLE,CIRCLE,CIRCLE,2*TILESIZE);
         //QPixmap level_1 = Item().drawCircle();
         map->questionLabel->setPixmap(level_1);
     }else if(map->questionLever == 1){
-        map->target = 50;
+        map->target = 30;
         QPixmap level_2 = Item().drawPixmap(SQUARE,SQUARE,SQUARE,SQUARE,2*TILESIZE);
         map->questionLabel->setPixmap(level_2);
     }else if(map->questionLever == 2){
-        map->target = 100;
+        map->target = 50;
         QPixmap level_3 = Item().drawPixmap(SQUARE,EMPTY,SQUARE,EMPTY,2*TILESIZE);
         map->questionLabel->setPixmap(level_3);
     }else{
         map->questionLabel->clear();
         map->countLabel->hide();
+        map->levelLabel->hide();
     }
     map->questionLabel->raise();
     map->countLabel->raise();
@@ -786,4 +820,35 @@ void Gamescene::paintEvent(QPaintEvent *event) {
     painter.drawRoundedRect(QRect(450, 810, 700, 70), 8, 8);
 }
 
+void Gamescene::saveGame(const QString& filename) {
+    // QFile file(filename);
+    // if (!file.open(QIODevice::WriteOnly)) {
+    //     qWarning() << "无法打开文件进行保存:" << filename;
+    //     return;
+    // }
+
+    // QDataStream out(&file);
+
+    // // 保存当前关卡和分数
+    // out << map->questionLever;
+    // out << map->current;
+
+    // // 保存地图的Tile信息
+    // for (int x = 0; x < map->getheight(); ++x) {
+    //     for (int y = 0; y < map->getwidth(); ++y) {
+    //         Tile tile = map->getTile(x, y);
+    //         out << static_cast<int>(tile.type);
+    //         out << tile.direction;
+    //         out << tile.name;
+    //         out << tile.state;
+    //         out << tile.size.first << tile.size.second;
+    //         // 保存其他Tile的属性
+    //     }
+    // }
+
+    // file.close();
+    // qDebug() << "游戏已保存到:" << filename;
+}
+
+void loadGame(const QString& filename){}
 

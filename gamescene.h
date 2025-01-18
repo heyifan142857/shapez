@@ -26,6 +26,10 @@ public:
 
     void paintEvent(QPaintEvent *) override;
 
+    void saveGame(const QString& filename);
+
+    void loadGame(const QString& filename);
+
     Map * map = nullptr;
 
     bool isPlaceItem;
@@ -52,6 +56,11 @@ private:
 
     QTimer* itemMoveTimer;
     QTimer* minerTimer;
+    QTimer* cutterTimer;
+
+    int itemMoveTimerInterval = 800;
+    int minerTimerInterval = 3200;
+    int cutterTimerInterval = 1600;
 
 signals:
 };

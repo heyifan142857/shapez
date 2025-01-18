@@ -36,6 +36,11 @@ Map::Map(int height, int width, QWidget* parent) :
     countLabel->setGeometry(15 * TILESIZE + 60, 8 * TILESIZE, 3 * TILESIZE, 2 * TILESIZE);
     countLabel->show();
     countLabel->raise();
+
+    levelLabel = new QLabel(this);
+    levelLabel->setGeometry(15 * TILESIZE - 15, 7 * TILESIZE + 15, TILESIZE, TILESIZE);
+    levelLabel->show();
+    levelLabel->raise();
 }
 
 Map::~Map() {
@@ -201,7 +206,7 @@ void Map::moveItems() {
 }
 
 void Map::moveSingleItem(int x,int y,QSet<std::pair<int, int>> &movedItems){
-    if(tiles[x][y]->type != Tile::Type::Belt && !(tiles[x][y]->type == Tile::Type::Building && tiles[x][y]->name == "cutter" && tiles[x][y]->item != nullptr)){
+    if(tiles[x][y]->type != Tile::Type::Belt){
         return;
     }
     if(tiles[x][y]->item == nullptr){
@@ -392,6 +397,115 @@ void Map::performMining(){
                 //         //tiles[generatePos.first][generatePos.second]->item->label->setAttribute(Qt::WA_AlwaysStackOnTop, true);;
                 //     }
                 // }
+            }
+        }
+    }
+}
+
+void Map::cutterUpdate(){
+    for (int x = 0; x < height; ++x) {
+        for (int y = 0; y < width; ++y) {
+            if(tiles[x][y]->type == Tile::Type::Building && tiles[x][y]->name == "cutter" && tiles[x][y]->item != nullptr){
+                std::pair<int,int> newPos = nextPox(x,y,*tiles[x][y]);
+                //Tile nextTile = getTile(newPos);
+                if(!inMap(newPos) || tiles[newPos.first][newPos.second]->type == Tile::Type::Color || tiles[newPos.first][newPos.second]->type == Tile::Type::Empty || tiles[newPos.first][newPos.second]->type == Tile::Type::Resource){
+                    return;
+                }
+                if(tiles[newPos.first][newPos.second]->father != nullptr && tiles[newPos.first][newPos.second]->type!=Tile::Type::Hub){
+                    return;
+                }
+                if(tiles[newPos.first][newPos.second]->type == Tile::Type::Belt){
+                    if(tiles[newPos.first][newPos.second]->item != nullptr){
+                        return;
+                    }
+                    int realDirection = tiles[x][y]->direction;
+                    if(tiles[x][y]->type == Tile::Type::Belt){
+                        if(tiles[x][y]->state == "left"){
+                            realDirection = (realDirection+3)%4;
+                        }
+                        if(tiles[x][y]->state == "right"){
+                            realDirection = (realDirection+1)%4;
+                        }
+                    }
+                    if(realDirection != tiles[newPos.first][newPos.second]->direction){
+                        return;
+                    }
+                    Item *item = tiles[x][y]->item;
+                    tiles[item->pos.first][item->pos.second]->item = nullptr;
+                    item->pos = newPos;
+                    tiles[newPos.first][newPos.second]->item = item;
+                    tiles[newPos.first][newPos.second]->item->label->move(newPos.second * TILESIZE, newPos.first * TILESIZE);
+                    tiles[newPos.first][newPos.second]->item->label->show();
+                    tiles[newPos.first][newPos.second]->item->label->raise();
+                }else if(tiles[newPos.first][newPos.second]->type == Tile::Type::Building){
+                    if(tiles[newPos.first][newPos.second]->name == "cutter"){
+                        int realDirection = tiles[x][y]->direction;
+                        if(tiles[x][y]->type == Tile::Type::Belt){
+                            if(tiles[x][y]->state == "left"){
+                                realDirection = (realDirection+3)%4;
+                            }
+                            if(tiles[x][y]->state == "right"){
+                                realDirection = (realDirection+1)%4;
+                            }
+                        }
+                        if(realDirection != tiles[newPos.first][newPos.second]->direction){
+                            return;
+                        }else{
+                            std::pair<std::pair<int,int>,std::pair<int,int>> outPos = cutterOutPox(newPos.first,newPos.second,*tiles[newPos.first][newPos.second]);
+                            if(canEnter(tiles[newPos.first][newPos.second]->direction, outPos.first)&&canEnter(tiles[newPos.first][newPos.second]->direction, outPos.second)){
+                                int stragedy = 0;
+                                if(tiles[x][y]->direction == WEST || tiles[x][y]->direction == EAST){
+                                    stragedy = 0;
+                                }else{
+                                    stragedy = 1;
+                                }
+                                if(!tiles[x][y]->item->isCuttable()){
+                                    return;
+                                }
+                                std::pair<Item*,Item*> items = tiles[x][y]->item->cutItem(stragedy);
+                                std::pair<std::pair<int,int>,std::pair<int,int>> outItemPos = cutterOutPox(x,y,*tiles[x][y]);
+
+                                if(tiles[outItemPos.first.first][outItemPos.first.second]->item!=nullptr || tiles[outItemPos.second.first][outItemPos.second.second]->item!=nullptr){
+                                    return;
+                                }
+
+                                delete tiles[x][y]->item;
+                                tiles[x][y]->item = nullptr;
+
+                                tiles[outItemPos.first.first][outItemPos.first.second]->item = items.first;
+                                tiles[outItemPos.first.first][outItemPos.first.second]->item->pos = outItemPos.first;
+                                tiles[outItemPos.first.first][outItemPos.first.second]->item->label = new QLabel(this);
+                                tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setGeometry(outItemPos.first.second * TILESIZE, outItemPos.first.first * TILESIZE, TILESIZE, TILESIZE);
+                                QPixmap pixmap1 =  tiles[outItemPos.first.first][outItemPos.first.second]->item->getPixmap();
+                                tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setPixmap(pixmap1);
+                                tiles[outItemPos.first.first][outItemPos.first.second]->item->label->hide();
+                                tiles[outItemPos.first.first][outItemPos.first.second]->item->label->raise();
+
+                                tiles[outItemPos.second.first][outItemPos.second.second]->item = items.second;
+                                tiles[outItemPos.second.first][outItemPos.second.second]->item->pos = outItemPos.second;
+                                tiles[outItemPos.second.first][outItemPos.second.second]->item->label = new QLabel(this);
+                                tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setGeometry(outItemPos.second.second * TILESIZE, outItemPos.second.first * TILESIZE, TILESIZE, TILESIZE);
+                                QPixmap pixmap2 =  tiles[outItemPos.second.first][outItemPos.second.second]->item->getPixmap();
+                                tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setPixmap(pixmap2);
+                                tiles[outItemPos.second.first][outItemPos.second.second]->item->label->hide();
+                                tiles[outItemPos.second.first][outItemPos.second.second]->item->label->raise();
+                            }else{
+                                return;
+                            }
+                        }
+                        //todo
+                    }else{
+                        Item *tempItem = tiles[x][y]->item;
+                        tiles[x][y]->item = nullptr;
+                        delete tempItem;
+                    }
+                }else if(tiles[newPos.first][newPos.second]->type == Tile::Type::Hub){
+                    Item *tempItem = tiles[x][y]->item;
+                    itemToHub(tempItem->part1,tempItem->part2,tempItem->part3,tempItem->part4);
+                    tiles[x][y]->item = nullptr;
+                    delete tempItem;
+                    //todo
+                }
             }
         }
     }
