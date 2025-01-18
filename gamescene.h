@@ -45,7 +45,8 @@ private:
     QPushButton * mixerbtn;
     QPushButton * painterbtn;
     QPushButton * trashbtn;
-    int questionLever;
+
+    QFont font;
 
     bool isDragging;
 

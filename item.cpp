@@ -93,7 +93,7 @@ QPixmap Item::getPixmap() {
             pixmap = circle.copy(cropRect);
         }
         if (type == EMPTY){
-            pixmap.scaled((TILESIZE/2),(TILESIZE/2));
+            pixmap = QPixmap(TILESIZE / 2, TILESIZE / 2); ;
             pixmap.fill(Qt::transparent);
         }
     };
@@ -121,7 +121,7 @@ QPixmap Item::drawSquare(){
 
     QPixmap square(TILESIZE, TILESIZE);
     square.fill(Qt::transparent);
-    QPen pen(Qt::black);
+    QPen pen(QColor("#404040"));
     pen.setWidth(2);
     QRectF rectangle(9, 9, 2*size, 2*size);
 
@@ -140,7 +140,7 @@ QPixmap Item::drawCircle(){
 
     QPixmap circle(TILESIZE, TILESIZE);
     circle.fill(Qt::transparent);
-    QPen pen(Qt::black);
+    QPen pen(QColor("#404040"));
     pen.setWidth(2);
     QRectF rectangle(9, 9, 2*size, 2*size);
 
@@ -155,61 +155,68 @@ QPixmap Item::drawCircle(){
     return circle;
 }
 
-QPixmap drawPixmap(int part1, int part2, int part3, int part4, int pixmapSize) {
-    const int IMAGE_SIZE = pixmapSize;
-    const int PART_SIZE = IMAGE_SIZE / 2;
-    const int BASE_SIZE = 16;
-    const int BASE_OFFSET = 9;
+QPixmap Item::drawPixmap(int part1, int part2, int part3, int part4, int pixmapSize) {
+    int size = pixmapSize / TILESIZE * 16;
+    int offset = pixmapSize / TILESIZE * 9;
+    int PART_SIZE = pixmapSize / 2;
 
-    int size = pixmapSize / BASE_SIZE * 16;
-    int offset = pixmapSize / BASE_SIZE * 9;
-
-    auto drawShape = [&](QPixmap &pixmap, bool isCircle) {
-        QPen pen(Qt::black);
-        pen.setWidth(2);
-        QRectF rectangle(offset, offset, size, size);
-
-        QPainter painter(&pixmap);
-        painter.setRenderHint(QPainter::Antialiasing);
-        painter.setPen(pen);
-        painter.setBrush(QColor("#9EA1A3"));
-
-        if (isCircle) {
-            painter.drawEllipse(rectangle);
-        } else {
-            painter.drawRect(rectangle);
-        }
-
-        painter.drawLine(offset, size / 2 + offset, size + offset, size / 2 + offset);
-        painter.drawLine(size / 2 + offset, offset, size / 2 + offset, size + offset);
-    };
-
-    QPixmap circle(IMAGE_SIZE, IMAGE_SIZE);
+    QPixmap circle(pixmapSize, pixmapSize);
     circle.fill(Qt::transparent);
-    drawShape(circle, true);
-
-    QPixmap square(IMAGE_SIZE, IMAGE_SIZE);
+    QPixmap square(pixmapSize, pixmapSize);
     square.fill(Qt::transparent);
-    drawShape(square, false);
+    QPen pen(QColor("#404040"));
+    pen.setWidth(4);
+    QRectF rectangle(offset, offset, 2*size, 2*size);
 
-    auto cutShape = [=](const QPixmap &source, int part) {
-        QRect cropRect((part % 2) * PART_SIZE, (part / 2) * PART_SIZE, PART_SIZE, PART_SIZE);
-        return source.copy(cropRect);
+    QPainter painter1(&circle);
+    painter1.setRenderHint(QPainter::Antialiasing);
+    painter1.setPen(pen);
+    painter1.setBrush(QColor("#9EA1A3"));
+    painter1.drawEllipse(rectangle);
+    painter1.drawLine(offset, size+offset, 2*size+offset, size+offset);
+    painter1.drawLine(size+offset, offset, size+offset, 2*size+offset);
+
+    QPainter painter2(&square);
+    painter2.setRenderHint(QPainter::Antialiasing);
+    painter2.setPen(pen);
+    painter2.setBrush(QColor("#9EA1A3"));
+    painter2.drawRect(rectangle);
+    painter2.drawLine(offset, size+offset, 2*size+offset, size+offset);
+    painter2.drawLine(size+offset, offset, size+offset, 2*size+offset);
+
+    QPixmap pixmap1;
+    QPixmap pixmap2;
+    QPixmap pixmap3;
+    QPixmap pixmap4;
+
+    auto cutShape = [=](QPixmap &pixmap, int type ,int part) {
+        QRect cropRect((part%2)*(pixmapSize/2), (part/2)*(pixmapSize/2), (pixmapSize/2), (pixmapSize/2));
+        if (type == SQUARE){
+            pixmap = square.copy(cropRect);
+        }
+        if (type == CIRCLE){
+            pixmap = circle.copy(cropRect);
+        }
+        if (type == EMPTY){
+            pixmap = QPixmap((pixmapSize/2),(pixmapSize/2));
+            pixmap.fill(Qt::transparent);
+        }
     };
 
-    QPixmap pixmap1 = (part1 == EMPTY) ? QPixmap(PART_SIZE, PART_SIZE) : cutShape(part1 == CIRCLE ? circle : square, 0);
-    QPixmap pixmap2 = (part2 == EMPTY) ? QPixmap(PART_SIZE, PART_SIZE) : cutShape(part2 == CIRCLE ? circle : square, 1);
-    QPixmap pixmap3 = (part3 == EMPTY) ? QPixmap(PART_SIZE, PART_SIZE) : cutShape(part3 == CIRCLE ? circle : square, 2);
-    QPixmap pixmap4 = (part4 == EMPTY) ? QPixmap(PART_SIZE, PART_SIZE) : cutShape(part4 == CIRCLE ? circle : square, 3);
+    cutShape(pixmap1,part1,0);
+    cutShape(pixmap2,part2,1);
+    cutShape(pixmap3,part3,2);
+    cutShape(pixmap4,part4,3);
 
-    QPixmap combinedPixmap(IMAGE_SIZE, IMAGE_SIZE);
+    // 创建组合图像
+    QPixmap combinedPixmap(pixmapSize, pixmapSize);
     combinedPixmap.fill(Qt::transparent);
 
     QPainter combinedPainter(&combinedPixmap);
     combinedPainter.drawPixmap(0, 0, pixmap1); // 左上角
-    combinedPainter.drawPixmap(PART_SIZE, 0, pixmap2); // 右上角
-    combinedPainter.drawPixmap(0, PART_SIZE, pixmap3); // 左下角
-    combinedPainter.drawPixmap(PART_SIZE, PART_SIZE, pixmap4); // 右下角
+    combinedPainter.drawPixmap(pixmapSize/2, 0, pixmap2); // 右上角
+    combinedPainter.drawPixmap(0, pixmapSize/2, pixmap3); // 左下角
+    combinedPainter.drawPixmap(pixmapSize/2, pixmapSize/2, pixmap4); // 右下角
 
     return combinedPixmap;
 }

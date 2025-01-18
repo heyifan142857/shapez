@@ -187,5 +187,6 @@
         <file>res/colors/white.png</file>
         <file>res/colors/yellow.png</file>
         <file>res/github.png</file>
+        <file>res/font/ComicNeue-Bold.ttf</file>
     </qresource>
 </RCC>

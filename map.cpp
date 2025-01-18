@@ -18,11 +18,24 @@ Map::Map(int height, int width, QWidget* parent) :
         }
     }
 
+
+    current = 0;
+    target = 1;
+    questionLever = 0;
+
     animationTimer = new QTimer(this);
     connect(animationTimer, &QTimer::timeout, this, &Map::updateAnimationFrame);
     animationTimer->start(20); // 每 20 毫秒更新一次帧
 
+    questionLabel = new QLabel(this);
+    questionLabel->setGeometry(15 * TILESIZE - 30, 8 * TILESIZE, 2 * TILESIZE, 2 * TILESIZE);
+    questionLabel->show();
+    questionLabel->raise();
 
+    countLabel = new QLabel(this);
+    countLabel->setGeometry(15 * TILESIZE + 60, 8 * TILESIZE, 3 * TILESIZE, 2 * TILESIZE);
+    countLabel->show();
+    countLabel->raise();
 }
 
 Map::~Map() {
@@ -176,14 +189,18 @@ int Map::getheight() const{
 }
 
 void Map::moveItems() {
+    QSet<std::pair<int, int>> movedItems;
     for (int x = 0; x < height; ++x) {
         for (int y = 0; y < width; ++y) {
-            moveSingleItem(x,y);
+            if(movedItems.contains({x, y})){
+                continue;
+            }
+            moveSingleItem(x,y,movedItems);
         }
     }
 }
 
-void Map::moveSingleItem(int x,int y){
+void Map::moveSingleItem(int x,int y,QSet<std::pair<int, int>> &movedItems){
     if(tiles[x][y]->type != Tile::Type::Belt && !(tiles[x][y]->type == Tile::Type::Building && tiles[x][y]->name == "cutter" && tiles[x][y]->item != nullptr)){
         return;
     }
@@ -195,7 +212,7 @@ void Map::moveSingleItem(int x,int y){
     if(!inMap(newPos) || tiles[newPos.first][newPos.second]->type == Tile::Type::Color || tiles[newPos.first][newPos.second]->type == Tile::Type::Empty || tiles[newPos.first][newPos.second]->type == Tile::Type::Resource){
         return;
     }
-    if(tiles[newPos.first][newPos.second]->father != nullptr){
+    if(tiles[newPos.first][newPos.second]->father != nullptr && tiles[newPos.first][newPos.second]->type!=Tile::Type::Hub){
         return;
     }
     if(tiles[newPos.first][newPos.second]->type == Tile::Type::Belt){
@@ -221,6 +238,7 @@ void Map::moveSingleItem(int x,int y){
         tiles[newPos.first][newPos.second]->item->label->move(newPos.second * TILESIZE, newPos.first * TILESIZE);
         tiles[newPos.first][newPos.second]->item->label->show();
         tiles[newPos.first][newPos.second]->item->label->raise();
+        movedItems.insert({newPos.first,newPos.second});
     }else if(tiles[newPos.first][newPos.second]->type == Tile::Type::Building){
         if(tiles[newPos.first][newPos.second]->name == "cutter"){
             int realDirection = tiles[x][y]->direction;
@@ -273,6 +291,8 @@ void Map::moveSingleItem(int x,int y){
                     tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setPixmap(pixmap2);
                     tiles[outItemPos.second.first][outItemPos.second.second]->item->label->hide();
                     tiles[outItemPos.second.first][outItemPos.second.second]->item->label->raise();
+                    movedItems.insert({outItemPos.first.first,outItemPos.first.second});
+                    movedItems.insert({outItemPos.second.first,outItemPos.second.second});
                 }else{
                     return;
                 }
@@ -285,6 +305,7 @@ void Map::moveSingleItem(int x,int y){
         }
     }else if(tiles[newPos.first][newPos.second]->type == Tile::Type::Hub){
         Item *tempItem = tiles[x][y]->item;
+        itemToHub(tempItem->part1,tempItem->part2,tempItem->part3,tempItem->part4);
         tiles[x][y]->item = nullptr;
         delete tempItem;
         //todo
@@ -354,6 +375,7 @@ void Map::performMining(){
                         tiles[generatePos.first][generatePos.second]->item->label->setPixmap(minePixmap);
                         tiles[generatePos.first][generatePos.second]->item->label->show();
                         tiles[generatePos.first][generatePos.second]->item->label->raise();
+                        //items.append();
                         //tiles[generatePos.first][generatePos.second]->item->label->setAttribute(Qt::WA_AlwaysStackOnTop, true);;
                     }
                 }
@@ -371,6 +393,22 @@ void Map::performMining(){
                 //     }
                 // }
             }
+        }
+    }
+}
+
+void Map::itemToHub(int part1, int part2, int part3, int part4){
+    if(questionLever == 0){
+        if(part1==CIRCLE && part2==CIRCLE && part3==CIRCLE && part4==CIRCLE){
+            current++;
+        }
+    }else if(questionLever == 1){
+        if(part1==SQUARE && part2==SQUARE && part3==SQUARE && part4==SQUARE){
+            current++;
+        }
+    }else if(questionLever == 2){
+        if(part1==SQUARE && part2==EMPTY && part3==SQUARE && part4==EMPTY){
+            current++;
         }
     }
 }

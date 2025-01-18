@@ -2,6 +2,8 @@
 #include "item.h"
 #include <QPropertyAnimation>
 #include <QVBoxLayout>
+#include <QFont>
+#include <QFontDatabase>
 
 Gamescene::Gamescene(QWidget *parent)
     : isPlaceItem(false), currentTile(nullptr), QWidget{parent}
@@ -17,19 +19,35 @@ Gamescene::Gamescene(QWidget *parent)
     map->setTile(7,14,Hub);
 
     Tile ResSquare = Tile(Tile::Type::Resource,NORTH,"square");
-    map->setTile(0,0,ResSquare);
-    map->setTile(0,1,ResSquare);
-    map->setTile(1,0,ResSquare);
+    map->setTile(17,0,ResSquare);
+    map->setTile(16,0,ResSquare);
+    map->setTile(17,1,ResSquare);
 
     Tile ResCircle = Tile(Tile::Type::Resource,NORTH,"circle");
-    map->setTile(17,0,ResCircle);
-    map->setTile(16,0,ResCircle);
-    map->setTile(17,1,ResCircle);
+    map->setTile(0,0,ResCircle);
+    map->setTile(0,1,ResCircle);
+    map->setTile(1,0,ResCircle);
     qDebug() << "successfully build map";
 
     //编辑问题
-    questionLever = 0;
+    map->current = 0;
+    map->target = 0;
+    map->questionLever = 0;
     setPuzzle();
+
+    int fontId = QFontDatabase::addApplicationFont(":/res/font/ComicNeue-Bold.ttf");
+    if (fontId == -1) {
+        qDebug() << "Failed to load font!";
+    }
+    QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
+    if (fontFamilies.isEmpty()) {
+        qDebug() << "No font families found!";
+    }
+    QString fontFamily = fontFamilies.at(0);
+    qDebug() << "Loaded font family:" << fontFamily;
+    font.setPointSize(28);
+    font.setFamily(fontFamily);
+    map->countLabel->setFont(font);
 
     // test = new QLabel(this);
     // //QPixmap combinedPixmap = Item(SQUARE,SQUARE,SQUARE,SQUARE).getPixmap();
@@ -44,6 +62,11 @@ Gamescene::Gamescene(QWidget *parent)
     connect(itemMoveTimer, &QTimer::timeout, this, [this]() {
         map->moveItems();
         //qDebug() << "moving mining";
+        map->countLabel->setText(QString("%1\n/%2").arg(map->current).arg(map->target));
+        if(map->current >= map->target){
+            map->questionLever++;
+            setPuzzle();
+        }
     });
     itemMoveTimer->start(400);
 
@@ -598,7 +621,26 @@ Gamescene::Gamescene(QWidget *parent)
 }
 
 void Gamescene::setPuzzle(){
-    //todo
+    map->current = 0;
+    if(map->questionLever == 0){
+        map->target = 10;
+        QPixmap level_1 = Item().drawPixmap(CIRCLE,CIRCLE,CIRCLE,CIRCLE,2*TILESIZE);
+        //QPixmap level_1 = Item().drawCircle();
+        map->questionLabel->setPixmap(level_1);
+    }else if(map->questionLever == 1){
+        map->target = 50;
+        QPixmap level_2 = Item().drawPixmap(SQUARE,SQUARE,SQUARE,SQUARE,2*TILESIZE);
+        map->questionLabel->setPixmap(level_2);
+    }else if(map->questionLever == 2){
+        map->target = 100;
+        QPixmap level_3 = Item().drawPixmap(SQUARE,EMPTY,SQUARE,EMPTY,2*TILESIZE);
+        map->questionLabel->setPixmap(level_3);
+    }else{
+        map->questionLabel->clear();
+        map->countLabel->hide();
+    }
+    map->questionLabel->raise();
+    map->countLabel->raise();
 }
 
 void Gamescene::mousePressEvent(QMouseEvent *event) {

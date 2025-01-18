@@ -38,23 +38,32 @@ public:
     std::pair<std::pair<int,int>,std::pair<int,int>> cutterOutPox(int x, int y,Tile &cutterTile);
 
     void moveItems();
-    void moveSingleItem(int x,int y);
+    void moveSingleItem(int x,int y,QSet<std::pair<int, int>> &movedItems);
     bool canEnter(int direction, std::pair<int,int> pos);
 
     void performMining();
 
+    void itemToHub(int part1, int part2, int part3, int part4);
+
 private slots:
     void updateAnimationFrame();
 
+public:
+    QLabel* questionLabel = nullptr;
+    QLabel* countLabel = nullptr;
+
+    int questionLever;
+
+    int current;
+    int target;
 private:
     QVector<QVector<Tile*>> tiles;
     int width, height;
     int frameIndex;
     QTimer* animationTimer;
 
-    QLabel* questionLabel = nullptr;
-
     QList<std::pair<int,int>> miners;
+    //QList<Item*> items;
 };
 
 #endif // MAP_H
