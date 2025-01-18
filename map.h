@@ -34,8 +34,12 @@ public:
     std::pair<int,int> nextPox(std::pair<int,int> originaPos,Tile &currentTile);
     bool inMap(int x,int y);
     bool inMap(std::pair<int,int> originaPos);
+    std::pair<std::pair<int,int>,std::pair<int,int>> cutterOutPox(std::pair<int,int> pos,Tile &cutterTile);
+    std::pair<std::pair<int,int>,std::pair<int,int>> cutterOutPox(int x, int y,Tile &cutterTile);
 
     void moveItems();
+    void moveSingleItem(int x,int y);
+    bool canEnter(int direction, std::pair<int,int> pos);
 
     void performMining();
 
@@ -47,6 +51,8 @@ private:
     int width, height;
     int frameIndex;
     QTimer* animationTimer;
+
+    QLabel* questionLabel = nullptr;
 
     QList<std::pair<int,int>> miners;
 };

@@ -14,6 +14,8 @@ class Gamescene : public QWidget
 public:
     explicit Gamescene(QWidget *parent = nullptr);
 
+    void setPuzzle();
+
     void mousePressEvent(QMouseEvent *event) override;
 
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -43,6 +45,7 @@ private:
     QPushButton * mixerbtn;
     QPushButton * painterbtn;
     QPushButton * trashbtn;
+    int questionLever;
 
     bool isDragging;
 

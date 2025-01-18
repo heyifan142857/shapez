@@ -20,18 +20,24 @@ class Item
 {
 public:
     Item():part1(EMPTY),part2(EMPTY),part3(EMPTY),part4(EMPTY),
-        label(nullptr),cuttable(false),pos(std::make_pair(0,0)){
+        label(nullptr),cuttable(true),pos(std::make_pair(0,0)){
 
     }
     Item(int part1,int part2,int part3,int part4, std::pair<int,int> pos = std::make_pair(0,0));
     Item(QString mine, std::pair<int,int> pos = std::make_pair(0,0));
+    Item(const Item& other);
     ~Item();
 
     QPixmap getPixmap();
     QPixmap drawSquare();
     QPixmap drawCircle();
+    QPixmap drawPixmap(int part1,int part2,int part3,int part4,int pixmapSize);
+
+    std::pair<Item*,Item*> cutItem(int stragedy);//stragedy = 0,横着切;stragedy = 1,竖着切
 
     bool ableToConbine(Item other);
+
+    bool isCuttable();
 
     Item operator+(const Item& other) const;
 

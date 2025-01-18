@@ -27,6 +27,10 @@ Gamescene::Gamescene(QWidget *parent)
     map->setTile(17,1,ResCircle);
     qDebug() << "successfully build map";
 
+    //编辑问题
+    questionLever = 0;
+    setPuzzle();
+
     // test = new QLabel(this);
     // //QPixmap combinedPixmap = Item(SQUARE,SQUARE,SQUARE,SQUARE).getPixmap();
     // QPixmap combinedPixmap = Item(CIRCLE,CIRCLE,CIRCLE,CIRCLE).getPixmap();
@@ -591,6 +595,10 @@ Gamescene::Gamescene(QWidget *parent)
     //map->deleteTile(2,20);
 
     map->setGeometry(0, 0, 1600, 900);
+}
+
+void Gamescene::setPuzzle(){
+    //todo
 }
 
 void Gamescene::mousePressEvent(QMouseEvent *event) {
