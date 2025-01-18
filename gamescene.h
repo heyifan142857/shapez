@@ -58,9 +58,13 @@ private:
     QTimer* minerTimer;
     QTimer* cutterTimer;
 
-    int itemMoveTimerInterval = 800;
-    int minerTimerInterval = 3200;
-    int cutterTimerInterval = 1600;
+    int itemMoveTimerIntervalUpgrate = 400;
+    int minerTimerIntervalUpgrate = 1600;
+    int cutterTimerIntervalUpgrate = 3200;
+
+    bool itemMoveUpgrate = false;
+    bool minerUpgrate = false;
+    bool cutterUpgrate = false;
 
 signals:
 };

@@ -5,6 +5,60 @@
 #include <QFont>
 #include <QFontDatabase>
 #include <QSoundEffect>
+#include <QDialog>
+#include <QMessageBox>
+
+class UpgradeDialog : public QDialog
+{
+    Q_OBJECT
+
+public:
+    explicit UpgradeDialog(bool itemMoveUpgrate, bool minerUpgrate ,bool cutterUpgrate ,QWidget *parent = nullptr) : QDialog(parent)
+    {
+        setWindowTitle("选择升级");
+
+        QVBoxLayout *layout = new QVBoxLayout(this);
+
+        // 升级传送带
+        if(!itemMoveUpgrate){
+            QPushButton *upgradeButton1 = new QPushButton("升级传送带", this);
+            connect(upgradeButton1, &QPushButton::clicked, this, [this]() {
+                selectedOption = 1;
+                accept();
+            });
+            layout->addWidget(upgradeButton1);
+        }
+
+        // 升级传送带
+        if(!minerUpgrate){
+            QPushButton *upgradeButton2 = new QPushButton("升级开采器", this);
+            connect(upgradeButton2, &QPushButton::clicked, this, [this]() {
+                selectedOption = 2;
+                accept();
+            });
+            layout->addWidget(upgradeButton2);
+        }
+
+        //升级切割机
+        if(!cutterUpgrate){
+            QPushButton *upgradeButton3 = new QPushButton("升级切割机", this);
+            connect(upgradeButton3, &QPushButton::clicked, this, [this]() {
+                selectedOption = 3;
+                accept();
+            });
+            layout->addWidget(upgradeButton3);
+        }
+
+        setLayout(layout);
+    }
+
+    int getSelectedOption() const {
+        return selectedOption;
+    }
+
+private:
+    int selectedOption = 0;
+};
 
 Gamescene::Gamescene(QWidget *parent)
     : isPlaceItem(false), currentTile(nullptr), QWidget{parent}
@@ -71,6 +125,28 @@ Gamescene::Gamescene(QWidget *parent)
         if(map->current >= map->target){
             map->questionLever++;
             setPuzzle();
+            UpgradeDialog dialog(itemMoveUpgrate, minerUpgrate ,cutterUpgrate,this);
+            if (dialog.exec() == QDialog::Accepted) {
+                // 获取用户选择的选项
+                int selectedOption = dialog.getSelectedOption();
+                if (selectedOption == 1) {
+                    itemMoveUpgrate = true;
+                    itemMoveTimer->setInterval(itemMoveTimerIntervalUpgrate);
+                    QMessageBox::information(this, "升级结果", "你选择了升级传送带！");
+                } else if (selectedOption == 2) {
+                    minerUpgrate = true;
+                    minerTimer->setInterval(minerTimerIntervalUpgrate);
+                    QMessageBox::information(this, "升级结果", "你选择了升级开采器！");
+                } else if (selectedOption == 3){
+                    cutterUpgrate = true;
+                    cutterTimer->setInterval(cutterTimerIntervalUpgrate);
+                    QMessageBox::information(this, "升级结果", "你选择了升级切割机！");
+                }else{
+                    QMessageBox::information(this, "升级结果", "未选择任何选项！");
+                }
+            } else {
+                QMessageBox::information(this, "升级结果", "用户未选择升级选项！");
+            }
         }
     });
     itemMoveTimer->start(800);
@@ -852,3 +928,4 @@ void Gamescene::saveGame(const QString& filename) {
 
 void loadGame(const QString& filename){}
 
+#include "gamescene.moc"
