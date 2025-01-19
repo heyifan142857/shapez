@@ -62,6 +62,8 @@ public:
     int current;
     int target;
 
+    //int coins = 0;
+
     QVector<QVector<Tile*>> tiles;
 private:
     int width, height;

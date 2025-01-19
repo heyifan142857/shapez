@@ -24,6 +24,12 @@ Item::Item(QString mine,std::pair<int,int> pos):label(nullptr),pos(pos){
         part2 = CIRCLE;
         part3 = CIRCLE;
         part4 = CIRCLE;
+    }else if(mine == "diamond"){
+        cuttable = false;
+        part1 = DIAMOND;
+        part2 = DIAMOND;
+        part3 = DIAMOND;
+        part4 = DIAMOND;
     }else{
         qDebug() << "wrong name of mine";
         cuttable = false;
@@ -79,6 +85,22 @@ QPixmap Item::getPixmap() {
     painter2.drawLine(9, size+9, 2*size+9, size+9);
     painter2.drawLine(size+9, 9, size+9, 2*size+9);
 
+    QPixmap diamond(TILESIZE, TILESIZE);
+    diamond.fill(Qt::transparent);
+    QPainter painter(&diamond);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(pen);
+    painter.setBrush(QColor("#9EA1A3"));
+    QPointF top(9 + size, 9);
+    QPointF right(9 + 2 * size, 9 + size);
+    QPointF bottom(9 + size, 9 + 2 * size);
+    QPointF left(9, 9 + size);
+    QPolygonF diamondShape;
+    diamondShape << top << right << bottom << left;
+    painter.drawPolygon(diamondShape);
+    painter.drawLine(9, size+9, 2*size+9, size+9);
+    painter.drawLine(size+9, 9, size+9, 2*size+9);
+
     QPixmap pixmap1;
     QPixmap pixmap2;
     QPixmap pixmap3;
@@ -91,6 +113,9 @@ QPixmap Item::getPixmap() {
         }
         if (type == CIRCLE){
             pixmap = circle.copy(cropRect);
+        }
+        if (type == DIAMOND){
+            pixmap = diamond.copy(cropRect);
         }
         if (type == EMPTY){
             pixmap = QPixmap(TILESIZE / 2, TILESIZE / 2); ;
@@ -135,6 +160,7 @@ QPixmap Item::drawSquare(){
 
     return square;
 }
+
 QPixmap Item::drawCircle(){
     int size = 16;
 
@@ -153,6 +179,35 @@ QPixmap Item::drawCircle(){
     painter.drawLine(size+9, 9, size+9, 2*size+9);
 
     return circle;
+}
+
+QPixmap Item::drawDiamond() {
+    int size = 16;
+
+    QPixmap diamond(TILESIZE, TILESIZE);
+    diamond.fill(Qt::transparent);
+
+    QPen pen(QColor("#404040"));
+    pen.setWidth(2);
+
+    QPainter painter(&diamond);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(pen);
+    painter.setBrush(QColor("#9EA1A3"));
+
+    QPointF top(9 + size, 9);
+    QPointF right(9 + 2 * size, 9 + size);
+    QPointF bottom(9 + size, 9 + 2 * size);
+    QPointF left(9, 9 + size);
+
+    QPolygonF diamondShape;
+    diamondShape << top << right << bottom << left;
+    painter.drawPolygon(diamondShape);
+
+    painter.drawLine(9, size+9, 2*size+9, size+9);
+    painter.drawLine(size+9, 9, size+9, 2*size+9);
+
+    return diamond;
 }
 
 QPixmap Item::drawPixmap(int part1, int part2, int part3, int part4, int pixmapSize) {

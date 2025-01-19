@@ -74,6 +74,9 @@ Tile::Tile(Type type, int direction, const QString& name, std::pair<int,int> siz
             image = Item().drawCircle();
         }else if(name == "square"){
             image = Item().drawSquare();
+        }else
+            if(name == "diamond"){
+            image = Item().drawDiamond();
         }else{
             qDebug() << "undefined resource";
         }

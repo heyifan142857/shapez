@@ -9,6 +9,7 @@
 #define EMPTY 0
 #define SQUARE 1
 #define CIRCLE 2
+#define DIAMOND 3
 
 #define UP 0
 #define RIGHT 1
@@ -31,6 +32,7 @@ public:
     QPixmap getPixmap();
     QPixmap drawSquare();
     QPixmap drawCircle();
+    QPixmap drawDiamond();
     QPixmap drawPixmap(int part1,int part2,int part3,int part4,int pixmapSize);
 
     std::pair<Item*,Item*> cutItem(int stragedy);//stragedy = 0,横着切;stragedy = 1,竖着切

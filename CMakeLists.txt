@@ -28,6 +28,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         res.qrc
         tile.h tile.cpp
         item.h item.cpp
+        configmanager.h configmanager.cpp
+        globalupgradedialog.h globalupgradedialog.cpp
 
 
 

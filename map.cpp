@@ -1,6 +1,7 @@
 #include <QDebug>
 #include <QMutableListIterator>
 #include "map.h"
+#include "globalupgradedialog.h"
 
 Map::Map(int height, int width, QWidget* parent) :
     QWidget(parent), width(width), height(height), frameIndex(0) {
@@ -217,9 +218,9 @@ void Map::moveSingleItem(int x,int y,QSet<std::pair<int, int>> &movedItems){
     if(!inMap(newPos) || tiles[newPos.first][newPos.second]->type == Tile::Type::Color || tiles[newPos.first][newPos.second]->type == Tile::Type::Empty || tiles[newPos.first][newPos.second]->type == Tile::Type::Resource){
         return;
     }
-    if(tiles[newPos.first][newPos.second]->father != nullptr && tiles[newPos.first][newPos.second]->type!=Tile::Type::Hub){
-        return;
-    }
+    // if(tiles[newPos.first][newPos.second]->father != nullptr && tiles[newPos.first][newPos.second]->type!=Tile::Type::Hub && tiles[newPos.first][newPos.second]->name != "cutter"){
+    //     return;
+    // }
     if(tiles[newPos.first][newPos.second]->type == Tile::Type::Belt){
         if(tiles[newPos.first][newPos.second]->item != nullptr){
             return;
@@ -246,6 +247,16 @@ void Map::moveSingleItem(int x,int y,QSet<std::pair<int, int>> &movedItems){
         movedItems.insert({newPos.first,newPos.second});
     }else if(tiles[newPos.first][newPos.second]->type == Tile::Type::Building){
         if(tiles[newPos.first][newPos.second]->name == "cutter"){
+            if(tiles[newPos.first][newPos.second]->direction == NORTH || tiles[newPos.first][newPos.second]->direction == EAST){
+                if(tiles[newPos.first][newPos.second]->father!=nullptr){
+                    return;
+                }
+            }
+            if(tiles[newPos.first][newPos.second]->direction == SOUTH || tiles[newPos.first][newPos.second]->direction == WEST){
+                if(tiles[newPos.first][newPos.second]->father==nullptr){
+                    return;
+                }
+            }
             int realDirection = tiles[x][y]->direction;
             if(tiles[x][y]->type == Tile::Type::Belt){
                 if(tiles[x][y]->state == "left"){
@@ -261,16 +272,23 @@ void Map::moveSingleItem(int x,int y,QSet<std::pair<int, int>> &movedItems){
                 std::pair<std::pair<int,int>,std::pair<int,int>> outPos = cutterOutPox(newPos.first,newPos.second,*tiles[newPos.first][newPos.second]);
                 if(canEnter(tiles[newPos.first][newPos.second]->direction, outPos.first)&&canEnter(tiles[newPos.first][newPos.second]->direction, outPos.second)){
                     int stragedy = 0;
-                    if(tiles[x][y]->direction == WEST || tiles[x][y]->direction == EAST){
+                    if(realDirection == WEST || realDirection == EAST){
                         stragedy = 0;
                     }else{
                         stragedy = 1;
                     }
-                    if(!tiles[x][y]->item->isCuttable()){
-                        return;
+                    ConfigManager config;
+                    if(!config.getUpgradeStatus("cut")){
+                        if(!tiles[x][y]->item->isCuttable()){
+                            return;
+                        }
                     }
+
                     std::pair<Item*,Item*> items = tiles[x][y]->item->cutItem(stragedy);
-                    std::pair<std::pair<int,int>,std::pair<int,int>> outItemPos = cutterOutPox(x,y,*tiles[x][y]);
+                    if(realDirection == SOUTH || realDirection == WEST){
+                        std::swap(items.first,items.second);
+                    }
+                    std::pair<std::pair<int,int>,std::pair<int,int>> outItemPos = cutterOutPox(x,y,*tiles[newPos.first][newPos.second]);
 
                     if(tiles[outItemPos.first.first][outItemPos.first.second]->item!=nullptr || tiles[outItemPos.second.first][outItemPos.second.second]->item!=nullptr){
                         return;
@@ -523,6 +541,28 @@ void Map::setItem(std::pair<int,int> pos, Item *item){
 }
 
 void Map::itemToHub(int part1, int part2, int part3, int part4){
+    int coins = 0;
+    QVector<int> parts = {part1,part2,part3,part4};
+    for(int part:parts){
+        if(part == EMPTY){
+            coins+=3;
+        }
+        if(part == SQUARE){
+            coins+=2;
+        }
+        if(part == CIRCLE){
+            coins+=1;
+        }
+        if(part == DIAMOND){
+            coins+=3;
+        }
+    }
+    ConfigManager config;
+    if(config.getUpgradeStatus("mine")){
+        coins *= 2;
+    }
+    config.addGold(coins);
+
     if(questionLever == 0){
         if(part1==CIRCLE && part2==CIRCLE && part3==CIRCLE && part4==CIRCLE){
             current++;

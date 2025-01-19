@@ -13,6 +13,8 @@
 #include <QJsonDocument>
 #include <QDir>
 #include <QInputDialog>
+#include "configmanager.h"
+#include "globalupgradedialog.h"
 
 class UpgradeDialog : public QDialog
 {
@@ -66,6 +68,7 @@ private:
     int selectedOption = 0;
 };
 
+
 Gamescene::Gamescene(QWidget *parent)
     : isPlaceItem(false), currentTile(nullptr), QWidget{parent}
 {
@@ -88,7 +91,15 @@ Gamescene::Gamescene(QWidget *parent)
     map->setTile(0,0,ResCircle);
     map->setTile(0,1,ResCircle);
     map->setTile(1,0,ResCircle);
-    qDebug() << "successfully build map";
+
+    ConfigManager config;
+    if(config.getUpgradeStatus("moremine")){
+        Tile ResDiamond = Tile(Tile::Type::Resource,NORTH,"diamond");
+        map->setTile(17,31,ResDiamond);
+        map->setTile(16,31,ResDiamond);
+        map->setTile(17,30,ResDiamond);
+        qDebug() << "successfully build map";
+    }
 
     //编辑问题
     map->current = 0;
@@ -727,7 +738,7 @@ Gamescene::Gamescene(QWidget *parent)
         "QPushButton:hover {"
         "background-color: rgba(121, 122, 128, 60);"  // 悬停时背景颜色变深
         "}");
-    backbtn->move(1525,65);
+    backbtn->move(1525,15);
 
     connect(backbtn, &QPushButton::clicked, this, &Gamescene::returnToMainScene);
 
@@ -745,7 +756,7 @@ Gamescene::Gamescene(QWidget *parent)
         "QPushButton:hover {"
         "background-color: rgba(121, 122, 128, 60);"  // 悬停时背景颜色变深
         "}");
-    savebtn->move(1475,65);
+    savebtn->move(1475,15);
 
     connect(savebtn, &QPushButton::clicked, this, [this](){
         bool ok;
@@ -763,6 +774,38 @@ Gamescene::Gamescene(QWidget *parent)
         //saveGame("save.json");
     });
 
+    QPushButton* upgratebtn = new QPushButton();
+    upgratebtn->setParent(this);
+    upgratebtn->setFixedSize(50, 50);
+    upgratebtn->setIconSize(QSize(30,30));
+    upgratebtn->setIcon(QIcon(":/res/statistics.png"));
+    upgratebtn->setStyleSheet(
+        "QPushButton {"
+        "border-radius: 8px;"
+        "background-color: transparent;"
+        "border: none;"
+        "}"
+        "QPushButton:hover {"
+        "background-color: rgba(121, 122, 128, 60);"  // 悬停时背景颜色变深
+        "}");
+    upgratebtn->move(1425,15);
+
+    connect(upgratebtn, &QPushButton::clicked, this, [this](){
+        ConfigManager config;
+        GlobalUpgradeDialog dialog(config, this);
+        // if (dialog.exec() == QDialog::Accepted) {
+        //     int selectedOption = dialog.getSelectedOption();
+        //     if(selectedOption == 3){
+        //         upgrateMine();
+        //         qDebug() << "upgrateMine() 被调用";
+        //     }
+        // }
+        dialog.exec();
+        if(config.getUpgradeStatus("moremine")){
+            upgrateMine();
+            qDebug() << "upgrateMine() 被调用";
+        };
+    });
 
     //测试
     // Tile forwardBelt(Tile::Type::Belt, "forward", NORTH);
@@ -1137,31 +1180,31 @@ void Gamescene::autoSaveGame(const QString& filename) {
     QJsonArray mapTiles;
     for (int x = 0; x < map->getheight(); ++x) {
         for (int y = 0; y < map->getwidth(); ++y) {
-            Tile tile = map->getTile(x, y);
-            if (tile.type != Tile::Type::Empty) {
+            Tile *tile = map->tiles[x][y];
+            if (tile->type != Tile::Type::Empty) {
                 QJsonObject tileObject;
                 tileObject["x"] = x;
                 tileObject["y"] = y;
-                tileObject["type"] = static_cast<int>(tile.type);
-                tileObject["direction"] = tile.direction;
-                tileObject["state"] = tile.state;
-                tileObject["name"] = tile.name;
+                tileObject["type"] = static_cast<int>(tile->type);
+                tileObject["direction"] = tile->direction;
+                tileObject["state"] = tile->state;
+                tileObject["name"] = tile->name;
 
                 QJsonObject sizeObject;
-                sizeObject["first"] = tile.size.first;
-                sizeObject["second"] = tile.size.second;
+                sizeObject["first"] = tile->size.first;
+                sizeObject["second"] = tile->size.second;
                 tileObject["size"] = sizeObject;
 
-                if (tile.item) {
+                if (tile->item) {
                     QJsonObject itemObject;
-                    itemObject["part1"] = tile.item->part1;
-                    itemObject["part2"] = tile.item->part2;
-                    itemObject["part3"] = tile.item->part3;
-                    itemObject["part4"] = tile.item->part4;
+                    itemObject["part1"] = tile->item->part1;
+                    itemObject["part2"] = tile->item->part2;
+                    itemObject["part3"] = tile->item->part3;
+                    itemObject["part4"] = tile->item->part4;
 
                     QJsonObject posObject;
-                    posObject["first"] = tile.item->pos.first;
-                    posObject["second"] = tile.item->pos.second;
+                    posObject["first"] = tile->item->pos.first;
+                    posObject["second"] = tile->item->pos.second;
                     itemObject["pos"] = posObject;
 
                     tileObject["item"] = itemObject;
@@ -1222,6 +1265,8 @@ void Gamescene::autoLoadGame(const QString& filename) {
             if (type == Tile::Type::Belt) {
                 Tile tile(type, state, direction);
                 tile.size = size;  // 恢复 size
+
+                map->setTile(x, y, tile);
                 if (tileObject.contains("item")) {
                     QJsonObject itemObject = tileObject["item"].toObject();
                     Item* item = new Item(
@@ -1235,9 +1280,8 @@ void Gamescene::autoLoadGame(const QString& filename) {
                     QJsonObject posObject = itemObject["pos"].toObject();
                     item->pos = std::make_pair(posObject["first"].toInt(), posObject["second"].toInt());
 
-                    tile.item = item;
+                    map->setItem(std::make_pair(x,y),item);
                 }
-                map->setTile(x, y, tile);
             } else {
                 Tile tile(type, direction, name, size);  // 恢复 size
                 if (tileObject.contains("item")) {
@@ -1272,6 +1316,17 @@ void Gamescene::returnToMainScene() {
     emit returnToMain();
     this->close();
     this->deleteLater();
+}
+
+void Gamescene::upgrateMine(){
+    map->deleteTile(17,31);
+    map->deleteTile(16,31);
+    map->deleteTile(17,30);
+    Tile ResDiamond = Tile(Tile::Type::Resource,NORTH,"diamond");
+    map->setTile(17,31,ResDiamond);
+    map->setTile(16,31,ResDiamond);
+    map->setTile(17,30,ResDiamond);
+    qDebug() << "successfully build map";
 }
 
 #include "gamescene.moc"

@@ -38,6 +38,7 @@ public:
 
     void returnToMainScene();
 
+    void upgrateMine();
     Map * map = nullptr;
 
     bool isPlaceItem;
