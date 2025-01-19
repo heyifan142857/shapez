@@ -197,5 +197,6 @@
         <file>res/notification_saved.png</file>
         <file>res/save.png</file>
         <file>res/settings_menu_exit.png</file>
+        <file>res/statistics.png</file>
     </qresource>
 </RCC>

@@ -981,31 +981,31 @@ void Gamescene::saveGame(const QString& filename) {
     QJsonArray mapTiles;
     for (int x = 0; x < map->getheight(); ++x) {
         for (int y = 0; y < map->getwidth(); ++y) {
-            Tile tile = map->getTile(x, y);
-            if (tile.type != Tile::Type::Empty) {
+            Tile *tile = map->tiles[x][y];
+            if (tile->type != Tile::Type::Empty) {
                 QJsonObject tileObject;
                 tileObject["x"] = x;
                 tileObject["y"] = y;
-                tileObject["type"] = static_cast<int>(tile.type);
-                tileObject["direction"] = tile.direction;
-                tileObject["state"] = tile.state;
-                tileObject["name"] = tile.name;
+                tileObject["type"] = static_cast<int>(tile->type);
+                tileObject["direction"] = tile->direction;
+                tileObject["state"] = tile->state;
+                tileObject["name"] = tile->name;
 
                 QJsonObject sizeObject;
-                sizeObject["first"] = tile.size.first;
-                sizeObject["second"] = tile.size.second;
+                sizeObject["first"] = tile->size.first;
+                sizeObject["second"] = tile->size.second;
                 tileObject["size"] = sizeObject;
 
-                if (tile.item) {
+                if (tile->item) {
                     QJsonObject itemObject;
-                    itemObject["part1"] = tile.item->part1;
-                    itemObject["part2"] = tile.item->part2;
-                    itemObject["part3"] = tile.item->part3;
-                    itemObject["part4"] = tile.item->part4;
+                    itemObject["part1"] = tile->item->part1;
+                    itemObject["part2"] = tile->item->part2;
+                    itemObject["part3"] = tile->item->part3;
+                    itemObject["part4"] = tile->item->part4;
 
                     QJsonObject posObject;
-                    posObject["first"] = tile.item->pos.first;
-                    posObject["second"] = tile.item->pos.second;
+                    posObject["first"] = tile->item->pos.first;
+                    posObject["second"] = tile->item->pos.second;
                     itemObject["pos"] = posObject;
 
                     tileObject["item"] = itemObject;
@@ -1065,6 +1065,8 @@ void Gamescene::loadGame(const QString& filename) {
         if (type == Tile::Type::Belt) {
             Tile tile(type, state, direction);
             tile.size = size;  // 恢复 size
+
+            map->setTile(x, y, tile);
             if (tileObject.contains("item")) {
                 QJsonObject itemObject = tileObject["item"].toObject();
                 Item* item = new Item(
@@ -1078,9 +1080,8 @@ void Gamescene::loadGame(const QString& filename) {
                 QJsonObject posObject = itemObject["pos"].toObject();
                 item->pos = std::make_pair(posObject["first"].toInt(), posObject["second"].toInt());
 
-                tile.item = item;
+                map->setItem(std::make_pair(x,y),item);
             }
-            map->setTile(x, y, tile);
         } else {
             Tile tile(type, direction, name, size);  // 恢复 size
             if (tileObject.contains("item")) {

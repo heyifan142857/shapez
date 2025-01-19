@@ -45,6 +45,8 @@ public:
 
     void cutterUpdate();
 
+    void setItem(std::pair<int,int> pos, Item *item);
+
     void itemToHub(int part1, int part2, int part3, int part4);
 
 private slots:
@@ -59,8 +61,9 @@ public:
 
     int current;
     int target;
-private:
+
     QVector<QVector<Tile*>> tiles;
+private:
     int width, height;
     int frameIndex;
     QTimer* animationTimer;

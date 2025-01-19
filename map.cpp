@@ -511,6 +511,17 @@ void Map::cutterUpdate(){
     }
 }
 
+
+void Map::setItem(std::pair<int,int> pos, Item *item){
+    tiles[pos.first][pos.second]->item = item;
+    tiles[pos.first][pos.second]->item->label = new QLabel(this);
+    tiles[pos.first][pos.second]->item->label->setGeometry(pos.second * TILESIZE, pos.first * TILESIZE, TILESIZE, TILESIZE);
+    QPixmap minePixmap = tiles[pos.first][pos.second]->item->getPixmap();
+    tiles[pos.first][pos.second]->item->label->setPixmap(minePixmap);
+    tiles[pos.first][pos.second]->item->label->show();
+    tiles[pos.first][pos.second]->item->label->raise();
+}
+
 void Map::itemToHub(int part1, int part2, int part3, int part4){
     if(questionLever == 0){
         if(part1==CIRCLE && part2==CIRCLE && part3==CIRCLE && part4==CIRCLE){
