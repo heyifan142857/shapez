@@ -7,6 +7,10 @@
 #include <QSoundEffect>
 #include <QDialog>
 #include <QMessageBox>
+#include <QFile>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonDocument>
 
 class UpgradeDialog : public QDialog
 {
@@ -707,6 +711,41 @@ Gamescene::Gamescene(QWidget *parent)
         trashbtnanimation->start();
     });
 
+    QPushButton* backbtn = new QPushButton();
+    backbtn->setParent(this);
+    backbtn->setFixedSize(50, 50);
+    backbtn->setIconSize(QSize(30,30));
+    backbtn->setIcon(QIcon(":/res/settings_menu_exit.png"));
+    backbtn->setStyleSheet(
+        "QPushButton {"
+        "border-radius: 8px;"
+        "background-color: transparent;"
+        "border: none;"
+        "}"
+        "QPushButton:hover {"
+        "background-color: rgba(121, 122, 128, 60);"  // 悬停时背景颜色变深
+        "}");
+    backbtn->move(1525,65);
+
+    connect(backbtn, &QPushButton::clicked, this, &Gamescene::returnToMainScene);
+
+    QPushButton* savebtn = new QPushButton();
+    savebtn->setParent(this);
+    savebtn->setFixedSize(50, 50);
+    savebtn->setIconSize(QSize(30,30));
+    savebtn->setIcon(QIcon(":/res/save.png"));
+    savebtn->setStyleSheet(
+        "QPushButton {"
+        "border-radius: 8px;"
+        "background-color: transparent;"
+        "border: none;"
+        "}"
+        "QPushButton:hover {"
+        "background-color: rgba(121, 122, 128, 60);"  // 悬停时背景颜色变深
+        "}");
+    savebtn->move(1475,65);
+
+    //connect(savebtn, &QPushButton::clicked, this, &Gamescene::saveGame);
 
 
     //测试
@@ -897,35 +936,122 @@ void Gamescene::paintEvent(QPaintEvent *event) {
 }
 
 void Gamescene::saveGame(const QString& filename) {
-    // QFile file(filename);
-    // if (!file.open(QIODevice::WriteOnly)) {
-    //     qWarning() << "无法打开文件进行保存:" << filename;
-    //     return;
-    // }
+    QFile file(filename);
+    if (!file.open(QIODevice::WriteOnly)) {
+        qWarning() << "无法打开文件进行保存:" << filename;
+        return;
+    }
 
-    // QDataStream out(&file);
+    QJsonObject gameState;
+    gameState["questionLever"] = map->questionLever;
+    gameState["current"] = map->current;
+    gameState["target"] = map->target;
 
-    // // 保存当前关卡和分数
-    // out << map->questionLever;
-    // out << map->current;
+    QJsonObject upgrades;
+    upgrades["itemMoveUpgrate"] = itemMoveUpgrate;
+    upgrades["minerUpgrate"] = minerUpgrate;
+    upgrades["cutterUpgrate"] = cutterUpgrate;
+    gameState["upgrades"] = upgrades;
 
-    // // 保存地图的Tile信息
-    // for (int x = 0; x < map->getheight(); ++x) {
-    //     for (int y = 0; y < map->getwidth(); ++y) {
-    //         Tile tile = map->getTile(x, y);
-    //         out << static_cast<int>(tile.type);
-    //         out << tile.direction;
-    //         out << tile.name;
-    //         out << tile.state;
-    //         out << tile.size.first << tile.size.second;
-    //         // 保存其他Tile的属性
-    //     }
-    // }
+    QJsonObject timers;
+    timers["itemMoveTimerIntervalUpgrate"] = itemMoveTimerIntervalUpgrate;
+    timers["minerTimerIntervalUpgrate"] = minerTimerIntervalUpgrate;
+    timers["cutterTimerIntervalUpgrate"] = cutterTimerIntervalUpgrate;
+    gameState["timers"] = timers;
 
-    // file.close();
-    // qDebug() << "游戏已保存到:" << filename;
+    QJsonArray mapTiles;
+    for (int x = 0; x < map->getheight(); ++x) {
+        for (int y = 0; y < map->getwidth(); ++y) {
+            Tile tile = map->getTile(x, y);
+            if (tile.type != Tile::Type::Empty) {
+                QJsonObject tileObject;
+                tileObject["x"] = x;
+                tileObject["y"] = y;
+                tileObject["type"] = static_cast<int>(tile.type);
+                tileObject["direction"] = tile.direction;
+                tileObject["state"] = tile.state;
+                tileObject["name"] = tile.name;
+                if (tile.item) {
+                    QJsonObject itemObject;
+                    itemObject["part1"] = tile.item->part1;
+                    itemObject["part2"] = tile.item->part2;
+                    itemObject["part3"] = tile.item->part3;
+                    itemObject["part4"] = tile.item->part4;
+                    tileObject["item"] = itemObject;
+                }
+                mapTiles.append(tileObject);
+            }
+        }
+    }
+    gameState["map"] = mapTiles;
+
+    QJsonDocument doc(gameState);
+    file.write(doc.toJson());
+    file.close();
+    qDebug() << "游戏已保存到:" << filename;
 }
 
-void loadGame(const QString& filename){}
+void Gamescene::loadGame(const QString& filename) {
+    QFile file(filename);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "无法打开文件进行加载:" << filename;
+        return;
+    }
+
+    QByteArray data = file.readAll();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+    QJsonObject gameState = doc.object();
+
+    map->questionLever = gameState["questionLever"].toInt();
+    map->current = gameState["current"].toInt();
+    map->target = gameState["target"].toInt();
+
+    QJsonObject upgrades = gameState["upgrades"].toObject();
+    itemMoveUpgrate = upgrades["itemMoveUpgrate"].toBool();
+    minerUpgrate = upgrades["minerUpgrate"].toBool();
+    cutterUpgrate = upgrades["cutterUpgrate"].toBool();
+
+    QJsonObject timers = gameState["timers"].toObject();
+    itemMoveTimerIntervalUpgrate = timers["itemMoveTimerIntervalUpgrate"].toInt();
+    minerTimerIntervalUpgrate = timers["minerTimerIntervalUpgrate"].toInt();
+    cutterTimerIntervalUpgrate = timers["cutterTimerIntervalUpgrate"].toInt();
+
+    QJsonArray mapTiles = gameState["map"].toArray();
+    for (const QJsonValue& tileValue : mapTiles) {
+        QJsonObject tileObject = tileValue.toObject();
+        int x = tileObject["x"].toInt();
+        int y = tileObject["y"].toInt();
+        Tile::Type type = static_cast<Tile::Type>(tileObject["type"].toInt());
+        int direction = tileObject["direction"].toInt();
+        QString state = tileObject["state"].toString();
+        QString name = tileObject["name"].toString();
+
+        Tile tile(type, direction, name);
+        if (tileObject.contains("item")) {
+            QJsonObject itemObject = tileObject["item"].toObject();
+            Item* item = new Item(
+                itemObject["part1"].toInt(),
+                itemObject["part2"].toInt(),
+                itemObject["part3"].toInt(),
+                itemObject["part4"].toInt()
+                );
+            tile.item = item;
+        }
+        map->setTile(x, y, tile);
+    }
+
+    file.close();
+    qDebug() << "游戏已从" << filename << "加载";
+}
+
+Gamescene::~Gamescene() {
+
+}
+
+void Gamescene::returnToMainScene() {
+    emit returnToMain();
+    this->close();
+    this->deleteLater();
+}
 
 #include "gamescene.moc"

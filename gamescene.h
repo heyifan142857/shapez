@@ -14,6 +14,8 @@ class Gamescene : public QWidget
 public:
     explicit Gamescene(QWidget *parent = nullptr);
 
+    ~Gamescene();
+
     void setPuzzle();
 
     void mousePressEvent(QMouseEvent *event) override;
@@ -29,6 +31,8 @@ public:
     void saveGame(const QString& filename);
 
     void loadGame(const QString& filename);
+
+    void returnToMainScene();
 
     Map * map = nullptr;
 
@@ -67,6 +71,7 @@ private:
     bool cutterUpgrate = false;
 
 signals:
+    void returnToMain();
 };
 
 #endif // GAMESCENE_H

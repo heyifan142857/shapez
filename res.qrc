@@ -194,5 +194,8 @@
         <file>res/sounds/place_building.wav</file>
         <file>res/sounds/ui_click.wav</file>
         <file>res/sounds/unlock_upgrade.wav</file>
+        <file>res/notification_saved.png</file>
+        <file>res/save.png</file>
+        <file>res/settings_menu_exit.png</file>
     </qresource>
 </RCC>

@@ -120,6 +120,10 @@ Mainscene::Mainscene(QWidget *parent)
             player->pause();//暂停音乐
             this->hide();
             gamescene->setGeometry(this->geometry());
+            connect(gamescene, &Gamescene::returnToMain, this, [this]() {
+                this->show();  // 当 Gamescene 被销毁时，重新显示 Mainscene
+                player->play();
+            });
             gamescene->show();
             qDebug() << "当前在游戏界面";
         });
