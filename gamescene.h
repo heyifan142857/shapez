@@ -6,6 +6,7 @@
 #include <QLabel>
 #include <QMouseEvent>
 #include <QPushButton>
+#include <QSoundEffect>
 #include "Map.h"
 
 class Gamescene : public QWidget
@@ -58,6 +59,8 @@ private:
     QPushButton * mixerbtn;
     QPushButton * painterbtn;
     QPushButton * trashbtn;
+
+    QSoundEffect ui_clickEffect;
 
     QFont font;
 

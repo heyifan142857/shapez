@@ -13,6 +13,7 @@
 #include <QUuid>
 #include <QSharedPointer>
 #include <QList>
+#include <QSoundEffect>
 
 #include "tile.h"
 //#include "item.h"
@@ -69,6 +70,10 @@ private:
     int width, height;
     int frameIndex;
     QTimer* animationTimer;
+
+    QSoundEffect place_beltEffect;
+
+    QSoundEffect place_buildingEffect;
 
     QList<std::pair<int,int>> miners;
     //QList<Item*> items;

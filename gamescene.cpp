@@ -190,15 +190,7 @@ Gamescene::Gamescene(QWidget *parent)
     destroy_buildingEffect.setSource(QUrl::fromLocalFile(":/res/sounds/destroy_building.wav"));
     destroy_buildingEffect.setVolume(0.5f);
 
-    QSoundEffect place_beltEffect;
-    place_beltEffect.setSource(QUrl::fromLocalFile(":/res/sounds/place_belt.wav"));
-    place_beltEffect.setVolume(0.5f);
 
-    QSoundEffect place_buildingEffect;
-    place_buildingEffect.setSource(QUrl::fromLocalFile(":/res/sounds/place_building.wav"));
-    place_buildingEffect.setVolume(0.5f);
-
-    QSoundEffect ui_clickEffect;
     ui_clickEffect.setSource(QUrl::fromLocalFile(":/res/sounds/ui_click.wav"));
     ui_clickEffect.setVolume(0.5f);
 
@@ -221,6 +213,7 @@ Gamescene::Gamescene(QWidget *parent)
     beltbtn->move(450,810);
 
     connect(beltbtn, &QPushButton::clicked, this, [this]() {
+        ui_clickEffect.play();
         if(isPlaceItem && currentTile && currentTile->type == Tile::Type::Belt){
             qDebug() << "cancel placing belt";
             isPlaceItem = false;
@@ -1126,6 +1119,11 @@ void Gamescene::loadGame(const QString& filename) {
                 map->setItem(std::make_pair(x,y),item);
             }
         } else {
+            if(direction==WEST || direction==EAST){
+                int x = size.first;
+                int y = size.second;
+                size = std::make_pair(y,x);
+            }
             Tile tile(type, direction, name, size);  // 恢复 size
             if (tileObject.contains("item")) {
                 QJsonObject itemObject = tileObject["item"].toObject();
@@ -1283,6 +1281,11 @@ void Gamescene::autoLoadGame(const QString& filename) {
                     map->setItem(std::make_pair(x,y),item);
                 }
             } else {
+                if(direction==WEST || direction==EAST){
+                    int x = size.first;
+                    int y = size.second;
+                    size = std::make_pair(y,x);
+                }
                 Tile tile(type, direction, name, size);  // 恢复 size
                 if (tileObject.contains("item")) {
                     QJsonObject itemObject = tileObject["item"].toObject();

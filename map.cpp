@@ -19,6 +19,11 @@ Map::Map(int height, int width, QWidget* parent) :
         }
     }
 
+    place_beltEffect.setSource(QUrl::fromLocalFile(":/res/sounds/place_belt.wav"));
+    place_beltEffect.setVolume(0.5f);
+
+    place_buildingEffect.setSource(QUrl::fromLocalFile(":/res/sounds/place_building.wav"));
+    place_buildingEffect.setVolume(0.5f);
 
     current = 0;
     target = 1;
@@ -63,6 +68,8 @@ void Map::setTile(int x, int y, Tile &tile) {
         tiles[x][y]->label->setGeometry(y * TILESIZE, x * TILESIZE, tile.size.second * TILESIZE, tile.size.first * TILESIZE);
         tiles[x][y]->label->setPixmap(tile.image);
         tiles[x][y]->label->show();
+
+        place_buildingEffect.play();
         qDebug() << "successfully set pos("<<x<< ", " <<y<<") a new tile";
         return;
     }
@@ -85,8 +92,10 @@ void Map::setTile(int x, int y, Tile &tile) {
             if(frameIndex>tiles[x][y]->images.size()){
                 qWarning() << "图片缺失";
             }
+            place_beltEffect.play();
             tiles[x][y]->label->setPixmap(tile.images[frameIndex]);
         } else {
+            place_buildingEffect.play();
             tiles[x][y]->label->setPixmap(tile.image);
         }
         tiles[x][y]->label->show();
