@@ -13,6 +13,7 @@
 #include <QTimer>
 #include <QMediaPlayer>
 #include <QAudioOutput>
+#include <QFileDialog>
 #include "gamescene.h"
 
 QT_BEGIN_NAMESPACE
@@ -28,6 +29,8 @@ class Mainscene : public QWidget
 public:
     Mainscene(QWidget *parent = nullptr);
     ~Mainscene();
+
+    void loadGameAndSwitchToGameScene(const QString& filename);
 
     void paintEvent(QPaintEvent *);
 

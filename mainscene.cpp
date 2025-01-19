@@ -117,12 +117,14 @@ Mainscene::Mainscene(QWidget *parent)
 
         QTimer::singleShot(500,this,[=](){
             gamescene = new Gamescene;
-            player->pause();//暂停音乐
+            player->pause();
             this->hide();
             gamescene->setGeometry(this->geometry());
             connect(gamescene, &Gamescene::returnToMain, this, [this]() {
                 this->show();  // 当 Gamescene 被销毁时，重新显示 Mainscene
                 player->play();
+                gamescene = nullptr;
+                qDebug() << "当前在主界面";
             });
             gamescene->show();
             qDebug() << "当前在游戏界面";
@@ -147,7 +149,13 @@ Mainscene::Mainscene(QWidget *parent)
         readbtnanimation->start();
 
         QTimer::singleShot(500,this,[=](){
-            QMessageBox::information(this,"提示","功能尚未实现");
+            QString filename = QFileDialog::getOpenFileName(this, tr("选择存档文件"), "saves", tr("JSON 文件 (*.json)"));
+
+            if (!filename.isEmpty()) {
+                loadGameAndSwitchToGameScene(filename);
+            } else {
+                QMessageBox::warning(this, "警告", "未选择存档文件");
+            }
         });
     });
 
@@ -185,6 +193,27 @@ Mainscene::Mainscene(QWidget *parent)
         QUrl url("https://github.com/heyifan142857/shapez");
         QDesktopServices::openUrl(url);
     });
+}
+
+void Mainscene::loadGameAndSwitchToGameScene(const QString& filename) {
+    gamescene = new Gamescene;
+
+    gamescene->loadGame(filename);
+
+    player->pause();
+
+    this->hide();
+    gamescene->setGeometry(this->geometry());
+    gamescene->show();
+
+    connect(gamescene, &Gamescene::returnToMain, this, [this]() {
+        this->show();
+        player->play();
+        gamescene = nullptr;
+        qDebug() << "当前在主界面";
+    });
+
+    qDebug() << "当前在游戏界面";
 }
 
 Mainscene::~Mainscene()

@@ -11,6 +11,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QDir>
 
 class UpgradeDialog : public QDialog
 {
@@ -745,7 +746,9 @@ Gamescene::Gamescene(QWidget *parent)
         "}");
     savebtn->move(1475,65);
 
-    //connect(savebtn, &QPushButton::clicked, this, &Gamescene::saveGame);
+    connect(savebtn, &QPushButton::clicked, this, [&](){
+        saveGame("save.json");
+    });
 
 
     //测试
@@ -936,7 +939,10 @@ void Gamescene::paintEvent(QPaintEvent *event) {
 }
 
 void Gamescene::saveGame(const QString& filename) {
-    QFile file(filename);
+    QDir dir;
+    QString savePath = dir.currentPath() + "/saves/" + filename;
+
+    QFile file(savePath);
     if (!file.open(QIODevice::WriteOnly)) {
         qWarning() << "无法打开文件进行保存:" << filename;
         return;
@@ -1005,6 +1011,8 @@ void Gamescene::loadGame(const QString& filename) {
     map->questionLever = gameState["questionLever"].toInt();
     map->current = gameState["current"].toInt();
     map->target = gameState["target"].toInt();
+
+    setPuzzle();
 
     QJsonObject upgrades = gameState["upgrades"].toObject();
     itemMoveUpgrate = upgrades["itemMoveUpgrate"].toBool();
