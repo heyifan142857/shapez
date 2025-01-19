@@ -12,6 +12,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QDir>
+#include <QInputDialog>
 
 class UpgradeDialog : public QDialog
 {
@@ -746,8 +747,20 @@ Gamescene::Gamescene(QWidget *parent)
         "}");
     savebtn->move(1475,65);
 
-    connect(savebtn, &QPushButton::clicked, this, [&](){
-        saveGame("save.json");
+    connect(savebtn, &QPushButton::clicked, this, [this](){
+        bool ok;
+        QString filename = QInputDialog::getText(this, "输入文件名", "请输入存档文件名:", QLineEdit::Normal, "save.json", &ok);
+
+        if (ok && !filename.isEmpty()) {
+            if (!filename.endsWith(".json")) {
+                filename += ".json";
+            }
+            saveGame(filename);
+            autoSaveGame("auto_save.json");
+        } else {
+            QMessageBox::warning(this, "警告", "未输入文件名，保存取消");
+        }
+        //saveGame("save.json");
     });
 
 
@@ -977,12 +990,24 @@ void Gamescene::saveGame(const QString& filename) {
                 tileObject["direction"] = tile.direction;
                 tileObject["state"] = tile.state;
                 tileObject["name"] = tile.name;
+
+                QJsonObject sizeObject;
+                sizeObject["first"] = tile.size.first;
+                sizeObject["second"] = tile.size.second;
+                tileObject["size"] = sizeObject;
+
                 if (tile.item) {
                     QJsonObject itemObject;
                     itemObject["part1"] = tile.item->part1;
                     itemObject["part2"] = tile.item->part2;
                     itemObject["part3"] = tile.item->part3;
                     itemObject["part4"] = tile.item->part4;
+
+                    QJsonObject posObject;
+                    posObject["first"] = tile.item->pos.first;
+                    posObject["second"] = tile.item->pos.second;
+                    itemObject["pos"] = posObject;
+
                     tileObject["item"] = itemObject;
                 }
                 mapTiles.append(tileObject);
@@ -1009,10 +1034,9 @@ void Gamescene::loadGame(const QString& filename) {
     QJsonObject gameState = doc.object();
 
     map->questionLever = gameState["questionLever"].toInt();
-    map->current = gameState["current"].toInt();
     map->target = gameState["target"].toInt();
-
     setPuzzle();
+    map->current = gameState["current"].toInt();
 
     QJsonObject upgrades = gameState["upgrades"].toObject();
     itemMoveUpgrate = upgrades["itemMoveUpgrate"].toBool();
@@ -1034,22 +1058,209 @@ void Gamescene::loadGame(const QString& filename) {
         QString state = tileObject["state"].toString();
         QString name = tileObject["name"].toString();
 
-        Tile tile(type, direction, name);
-        if (tileObject.contains("item")) {
-            QJsonObject itemObject = tileObject["item"].toObject();
-            Item* item = new Item(
-                itemObject["part1"].toInt(),
-                itemObject["part2"].toInt(),
-                itemObject["part3"].toInt(),
-                itemObject["part4"].toInt()
-                );
-            tile.item = item;
+        // 读取 size
+        QJsonObject sizeObject = tileObject["size"].toObject();
+        std::pair<int, int> size = std::make_pair(sizeObject["first"].toInt(), sizeObject["second"].toInt());
+
+        if (type == Tile::Type::Belt) {
+            Tile tile(type, state, direction);
+            tile.size = size;  // 恢复 size
+            if (tileObject.contains("item")) {
+                QJsonObject itemObject = tileObject["item"].toObject();
+                Item* item = new Item(
+                    itemObject["part1"].toInt(),
+                    itemObject["part2"].toInt(),
+                    itemObject["part3"].toInt(),
+                    itemObject["part4"].toInt()
+                    );
+
+                // 恢复 pos
+                QJsonObject posObject = itemObject["pos"].toObject();
+                item->pos = std::make_pair(posObject["first"].toInt(), posObject["second"].toInt());
+
+                tile.item = item;
+            }
+            map->setTile(x, y, tile);
+        } else {
+            Tile tile(type, direction, name, size);  // 恢复 size
+            if (tileObject.contains("item")) {
+                QJsonObject itemObject = tileObject["item"].toObject();
+                Item* item = new Item(
+                    itemObject["part1"].toInt(),
+                    itemObject["part2"].toInt(),
+                    itemObject["part3"].toInt(),
+                    itemObject["part4"].toInt()
+                    );
+
+                // 恢复 pos
+                QJsonObject posObject = itemObject["pos"].toObject();
+                item->pos = std::make_pair(posObject["first"].toInt(), posObject["second"].toInt());
+
+                tile.item = item;
+            }
+            map->setTile(x, y, tile);
         }
-        map->setTile(x, y, tile);
     }
 
     file.close();
     qDebug() << "游戏已从" << filename << "加载";
+}
+
+void Gamescene::autoSaveGame(const QString& filename) {
+    QDir dir;
+    QString savePath = dir.currentPath() + "/auto_save/" + filename;
+
+    QFile file(savePath);
+    if (!file.open(QIODevice::WriteOnly)) {
+        qWarning() << "无法打开文件进行保存:" << filename;
+        return;
+    }
+
+    QJsonObject gameState;
+    gameState["questionLever"] = map->questionLever;
+    gameState["current"] = map->current;
+    gameState["target"] = map->target;
+
+    QJsonObject upgrades;
+    upgrades["itemMoveUpgrate"] = itemMoveUpgrate;
+    upgrades["minerUpgrate"] = minerUpgrate;
+    upgrades["cutterUpgrate"] = cutterUpgrate;
+    gameState["upgrades"] = upgrades;
+
+    QJsonObject timers;
+    timers["itemMoveTimerIntervalUpgrate"] = itemMoveTimerIntervalUpgrate;
+    timers["minerTimerIntervalUpgrate"] = minerTimerIntervalUpgrate;
+    timers["cutterTimerIntervalUpgrate"] = cutterTimerIntervalUpgrate;
+    gameState["timers"] = timers;
+
+    QJsonArray mapTiles;
+    for (int x = 0; x < map->getheight(); ++x) {
+        for (int y = 0; y < map->getwidth(); ++y) {
+            Tile tile = map->getTile(x, y);
+            if (tile.type != Tile::Type::Empty) {
+                QJsonObject tileObject;
+                tileObject["x"] = x;
+                tileObject["y"] = y;
+                tileObject["type"] = static_cast<int>(tile.type);
+                tileObject["direction"] = tile.direction;
+                tileObject["state"] = tile.state;
+                tileObject["name"] = tile.name;
+
+                QJsonObject sizeObject;
+                sizeObject["first"] = tile.size.first;
+                sizeObject["second"] = tile.size.second;
+                tileObject["size"] = sizeObject;
+
+                if (tile.item) {
+                    QJsonObject itemObject;
+                    itemObject["part1"] = tile.item->part1;
+                    itemObject["part2"] = tile.item->part2;
+                    itemObject["part3"] = tile.item->part3;
+                    itemObject["part4"] = tile.item->part4;
+
+                    QJsonObject posObject;
+                    posObject["first"] = tile.item->pos.first;
+                    posObject["second"] = tile.item->pos.second;
+                    itemObject["pos"] = posObject;
+
+                    tileObject["item"] = itemObject;
+                }
+                mapTiles.append(tileObject);
+            }
+        }
+    }
+    gameState["map"] = mapTiles;
+
+    QJsonDocument doc(gameState);
+    file.write(doc.toJson());
+    file.close();
+    qDebug() << "游戏已保存到:" << filename;
+}
+
+void Gamescene::autoLoadGame(const QString& filename) {
+    {
+        QFile file(filename);
+        if (!file.open(QIODevice::ReadOnly)) {
+            qWarning() << "无法打开文件进行加载:" << filename;
+            return;
+        }
+
+        QByteArray data = file.readAll();
+        QJsonDocument doc = QJsonDocument::fromJson(data);
+        QJsonObject gameState = doc.object();
+
+        map->questionLever = gameState["questionLever"].toInt();
+        map->target = gameState["target"].toInt();
+        setPuzzle();
+        map->current = gameState["current"].toInt();
+
+        QJsonObject upgrades = gameState["upgrades"].toObject();
+        itemMoveUpgrate = upgrades["itemMoveUpgrate"].toBool();
+        minerUpgrate = upgrades["minerUpgrate"].toBool();
+        cutterUpgrate = upgrades["cutterUpgrate"].toBool();
+
+        QJsonObject timers = gameState["timers"].toObject();
+        itemMoveTimerIntervalUpgrate = timers["itemMoveTimerIntervalUpgrate"].toInt();
+        minerTimerIntervalUpgrate = timers["minerTimerIntervalUpgrate"].toInt();
+        cutterTimerIntervalUpgrate = timers["cutterTimerIntervalUpgrate"].toInt();
+
+        QJsonArray mapTiles = gameState["map"].toArray();
+        for (const QJsonValue& tileValue : mapTiles) {
+            QJsonObject tileObject = tileValue.toObject();
+            int x = tileObject["x"].toInt();
+            int y = tileObject["y"].toInt();
+            Tile::Type type = static_cast<Tile::Type>(tileObject["type"].toInt());
+            int direction = tileObject["direction"].toInt();
+            QString state = tileObject["state"].toString();
+            QString name = tileObject["name"].toString();
+
+            // 读取 size
+            QJsonObject sizeObject = tileObject["size"].toObject();
+            std::pair<int, int> size = std::make_pair(sizeObject["first"].toInt(), sizeObject["second"].toInt());
+
+            if (type == Tile::Type::Belt) {
+                Tile tile(type, state, direction);
+                tile.size = size;  // 恢复 size
+                if (tileObject.contains("item")) {
+                    QJsonObject itemObject = tileObject["item"].toObject();
+                    Item* item = new Item(
+                        itemObject["part1"].toInt(),
+                        itemObject["part2"].toInt(),
+                        itemObject["part3"].toInt(),
+                        itemObject["part4"].toInt()
+                        );
+
+                    // 恢复 pos
+                    QJsonObject posObject = itemObject["pos"].toObject();
+                    item->pos = std::make_pair(posObject["first"].toInt(), posObject["second"].toInt());
+
+                    tile.item = item;
+                }
+                map->setTile(x, y, tile);
+            } else {
+                Tile tile(type, direction, name, size);  // 恢复 size
+                if (tileObject.contains("item")) {
+                    QJsonObject itemObject = tileObject["item"].toObject();
+                    Item* item = new Item(
+                        itemObject["part1"].toInt(),
+                        itemObject["part2"].toInt(),
+                        itemObject["part3"].toInt(),
+                        itemObject["part4"].toInt()
+                        );
+
+                    // 恢复 pos
+                    QJsonObject posObject = itemObject["pos"].toObject();
+                    item->pos = std::make_pair(posObject["first"].toInt(), posObject["second"].toInt());
+
+                    tile.item = item;
+                }
+                map->setTile(x, y, tile);
+            }
+        }
+
+        file.close();
+        qDebug() << "游戏已从" << filename << "加载";
+    }
 }
 
 Gamescene::~Gamescene() {

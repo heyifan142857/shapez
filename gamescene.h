@@ -32,6 +32,10 @@ public:
 
     void loadGame(const QString& filename);
 
+    void autoSaveGame(const QString& filename);
+
+    void autoLoadGame(const QString& filename);
+
     void returnToMainScene();
 
     Map * map = nullptr;

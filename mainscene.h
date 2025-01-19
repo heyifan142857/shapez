@@ -32,6 +32,8 @@ public:
 
     void loadGameAndSwitchToGameScene(const QString& filename);
 
+    void loadGameAndSwitchToGameScene();
+
     void paintEvent(QPaintEvent *);
 
     Gamescene * _gamescene = NULL;

@@ -178,7 +178,14 @@ Mainscene::Mainscene(QWidget *parent)
         continuebtnanimation->start();
 
         QTimer::singleShot(500,this,[=](){
-            QMessageBox::information(this,"提示","功能尚未实现");
+            QString defaultSaveFile = "auto_save/auto_save.json";
+            QFile file(defaultSaveFile);
+
+            if (file.exists()) {
+                loadGameAndSwitchToGameScene(defaultSaveFile);
+            } else {
+                QMessageBox::warning(this, "继续游戏", "未找到存档文件，请开始新游戏或加载其他存档。");
+            }
         });
     });
 
@@ -199,6 +206,28 @@ void Mainscene::loadGameAndSwitchToGameScene(const QString& filename) {
     gamescene = new Gamescene;
 
     gamescene->loadGame(filename);
+
+    player->pause();
+
+    this->hide();
+    gamescene->setGeometry(this->geometry());
+    gamescene->show();
+
+    connect(gamescene, &Gamescene::returnToMain, this, [this]() {
+        this->show();
+        player->play();
+        gamescene = nullptr;
+        qDebug() << "当前在主界面";
+    });
+
+    qDebug() << "当前在游戏界面";
+}
+
+void Mainscene::loadGameAndSwitchToGameScene() {
+
+    gamescene = new Gamescene;
+
+    gamescene->autoLoadGame("auto_save.json");
 
     player->pause();
 
