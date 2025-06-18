@@ -1,5 +1,6 @@
 #include <QDebug>
 #include <QMutableListIterator>
+#include <QMouseEvent>
 #include "map.h"
 #include "globalupgradedialog.h"
 
@@ -18,6 +19,12 @@ Map::Map(int height, int width, QWidget* parent) :
             tiles[x][y]->label->setGeometry(y * TILESIZE, x * TILESIZE, TILESIZE, TILESIZE);
         }
     }
+
+    draggingImageLabel = new QLabel(this);
+    draggingImageLabel->setPixmap(QPixmap(":/res/blueprints/belt_top.png")); // 设置图像
+    draggingImageLabel->resize(50, 50);
+    draggingImageLabel->show();
+    isDragging = false;
 
     place_beltEffect.setSource(QUrl::fromLocalFile(":/res/sounds/place_belt.wav"));
     place_beltEffect.setVolume(0.5f);
@@ -764,3 +771,11 @@ std::pair<std::pair<int,int>,std::pair<int,int>> Map::cutterOutPox(int x, int y,
     return std::make_pair(pos1,pos2);
 }
 
+void Map::mouseMoveEvent(QMouseEvent *event)
+{
+    if (draggingImageLabel) {
+        QPoint imageCenterOffset(draggingImageLabel->width() / 2, draggingImageLabel->height() / 2);
+        draggingImageLabel->move(event->pos() - imageCenterOffset);
+    }
+    QWidget::mouseMoveEvent(event);
+}

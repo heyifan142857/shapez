@@ -46,6 +46,8 @@ public:
 
     void cutterUpdate();
 
+    void mouseMoveEvent(QMouseEvent *event) override;
+
     void setItem(std::pair<int,int> pos, Item *item);
 
     void itemToHub(int part1, int part2, int part3, int part4);
@@ -63,6 +65,9 @@ public:
     int current;
     int target;
 
+    QLabel *draggingImageLabel;
+    bool isDragging;
+
     //int coins = 0;
 
     QVector<QVector<Tile*>> tiles;
@@ -77,6 +82,7 @@ private:
 
     QList<std::pair<int,int>> miners;
     //QList<Item*> items;
+
 };
 
 #endif // MAP_H
