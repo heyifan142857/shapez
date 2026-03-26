@@ -339,8 +339,10 @@ bool Map::deleteTile(int x, int y){
         return true;
     }
     if(tiles[x][y]->father != nullptr){
-        std::pair<int,int>* father = tiles[x][y]->father;
-        for(std::pair<int,int> son:tiles[father->first][father->second]->sons){
+        const std::pair<int,int> fatherPos = *tiles[x][y]->father;
+        const QVector<std::pair<int,int>> sons = tiles[fatherPos.first][fatherPos.second]->sons;
+
+        for(const std::pair<int,int> &son : sons){
             if(tiles[son.first][son.second]->type == Tile::Type::Empty){
                 continue;
             }
@@ -350,11 +352,11 @@ bool Map::deleteTile(int x, int y){
             tiles[son.first][son.second]->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
             updateTileLabel(son.first, son.second);
         }
-        delete tiles[father->first][father->second];
-        tiles[father->first][father->second] = new Tile();
-        tiles[father->first][father->second]->label = new QLabel(this);
-        tiles[father->first][father->second]->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-        updateTileLabel(father->first, father->second);
+        delete tiles[fatherPos.first][fatherPos.second];
+        tiles[fatherPos.first][fatherPos.second] = new Tile();
+        tiles[fatherPos.first][fatherPos.second]->label = new QLabel(this);
+        tiles[fatherPos.first][fatherPos.second]->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+        updateTileLabel(fatherPos.first, fatherPos.second);
         return true;
     }else{
         if(tiles[x][y]->size != std::make_pair(1,1)){
