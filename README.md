@@ -2,7 +2,7 @@
 
 A small classroom project inspired by [shapez.io](https://github.com/tobspr-games/shapez.io), implemented in C++ with Qt.
 
-This project was created for an advanced programming course and focuses on building a simplified factory game prototype. Due to time and scope constraints, only a subset of the original game's systems is implemented.
+This project was created for an advanced programming course and focuses on building a simplified factory game prototype. It is now published here as a learning and portfolio project. Due to time and scope constraints, only a subset of the original game's systems is implemented.
 
 ## Overview
 
@@ -83,15 +83,8 @@ You can also open the project directly in Qt Creator and build it there.
 
 This project is inspired by [shapez.io](https://github.com/tobspr-games/shapez.io).
 
-Some image and game assets were sourced from the original project repository and are included here for learning purposes only.
+Some image and game assets were adapted from or inspired by the original project repository. Please refer to the license below before reusing repository contents.
 
-## License Note
+## License
 
-This repository currently contains third-party assets from another project. Because of that, you should not simply mark the entire repository as MIT unless those assets are removed or replaced.
-
-In practice, you have two safer options:
-
-1. Remove or replace all GPL-licensed assets, then license your own project under MIT.
-2. Keep your own source code under MIT, but clearly state that the imported third-party assets remain under their original GPL-3.0 license.
-
-If you choose the second option, the repository becomes a mixed-license project, and the asset attribution and license boundaries should be documented clearly.
+This repository is distributed under the GNU General Public License v3.0. See the [LICENSE](./LICENSE) file for details.
