@@ -849,6 +849,7 @@ void Gamescene::panMapBy(const QPoint &delta)
 
 void Gamescene::zoomMapAt(const QPoint &viewportPos, double zoomDelta)
 {
+    map->hideBuildingInfo();
     const int oldTileSize = map->tilePixelSize();
     const QPoint oldMapPos = map->pos();
     const QPoint localPosBeforeZoom = viewportPos - oldMapPos;
@@ -875,6 +876,16 @@ QString Gamescene::t(const QString &zhText, const QString &enText) const
 
 void Gamescene::updateTexts()
 {
+    beltbtn->setToolTip(t("传送带\n沿朝向运输物品，拖动铺设时可以自动形成转弯。", "Belt\nMoves items forward and can automatically form turns while dragging belts."));
+    balancerbtn->setToolTip(t("平衡器\n把输入流平均分配，适合整理产线吞吐。", "Balancer\nSplits incoming flow evenly to keep your production lines balanced."));
+    underground_beltbtn->setToolTip(t("地下传送带\n让物品从地下穿过拥挤区域，便于跨越其他线路。", "Underground Belt\nSends items underground so they can cross busy factory lines."));
+    minerbtn->setToolTip(t("开采器\n放在矿物上持续采集资源，并朝前方输出。", "Miner\nExtracts resources from ore tiles continuously and outputs them forward."));
+    cutterbtn->setToolTip(t("切割机\n把输入图形切成两部分，为更复杂的目标做准备。", "Cutter\nCuts incoming shapes into two parts for more advanced production goals."));
+    rotaterbtn->setToolTip(t("旋转器\n将输入图形旋转后输出，用来调整拼装方向。", "Rotator\nRotates incoming shapes before output so you can align later processing."));
+    stackerbtn->setToolTip(t("堆叠器\n把两路输入组合成堆叠图形，适合更高阶产物。", "Stacker\nCombines two inputs into a stacked shape for more advanced recipes."));
+    mixerbtn->setToolTip(t("混合器\n将多路输入整合到同一产线，便于后续加工。", "Mixer\nMerges multiple inputs into one combined line for later processing."));
+    painterbtn->setToolTip(t("染色器\n给输入图形上色，让产线能够制作彩色目标。", "Painter\nApplies color to incoming shapes so you can produce painted targets."));
+    trashbtn->setToolTip(t("垃圾桶\n销毁输入物品，用来清理多余或错误的产物。", "Trash\nDeletes incoming items so you can remove extra or incorrect outputs."));
     backbtn->setToolTip(t("返回主界面", "Back to Main Menu"));
     savebtn->setToolTip(t("保存游戏", "Save Game"));
     upgratebtn->setToolTip(t("全局升级", "Global Upgrades"));
@@ -1011,6 +1022,8 @@ void Gamescene::updateBeltDragPath(const QPoint &targetCell)
 
 bool Gamescene::handleMapMousePress(QMouseEvent *event)
 {
+    map->hideBuildingInfo();
+
     if (event->button() == Qt::MiddleButton || (event->button() == Qt::LeftButton && !isPlaceItem)) {
         isPanning = true;
         lastPanGlobalPos = event->globalPosition().toPoint();
