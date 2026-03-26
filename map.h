@@ -16,6 +16,7 @@
 #include <QSoundEffect>
 #include <QPoint>
 #include <QSize>
+#include <QEvent>
 
 #include "tile.h"
 //#include "item.h"
@@ -35,8 +36,8 @@ public:
     int getheight() const;
     std::pair<int,int> nextPox(int x,int y,Tile &currentTile);
     std::pair<int,int> nextPox(std::pair<int,int> originaPos,Tile &currentTile);
-    bool inMap(int x,int y);
-    bool inMap(std::pair<int,int> originaPos);
+    bool inMap(int x,int y) const;
+    bool inMap(std::pair<int,int> originaPos) const;
     std::pair<std::pair<int,int>,std::pair<int,int>> cutterOutPox(std::pair<int,int> pos,Tile &cutterTile);
     std::pair<std::pair<int,int>,std::pair<int,int>> cutterOutPox(int x, int y,Tile &cutterTile);
 
@@ -49,6 +50,7 @@ public:
     void cutterUpdate();
 
     void mouseMoveEvent(QMouseEvent *event) override;
+    void leaveEvent(QEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
 
     void setItem(std::pair<int,int> pos, Item *item);
@@ -66,6 +68,7 @@ public:
     void clearBlueprint();
     void updateBlueprintCursor(const QPoint &mapPos);
     void updateLayout();
+    void hideBuildingInfo();
 
 private slots:
     void updateAnimationFrame();
@@ -89,8 +92,11 @@ private:
     int width, height;
     int frameIndex;
     QTimer* animationTimer;
+    QTimer* buildingInfoTimer = nullptr;
     double currentZoomFactor = 1.0;
     QPoint lastBlueprintCursorPos;
+    QPoint lastHoverCursorPos;
+    QPoint hoveredBuildingRootCell = QPoint(-1, -1);
 
     QSoundEffect place_beltEffect;
 
@@ -100,12 +106,19 @@ private:
     //QList<Item*> items;
     int hudAnchorRow = 8;
     int hudAnchorColumn = 15;
+    QLabel *buildingInfoLabel = nullptr;
 
     QSize cellPixelSize(std::pair<int, int> cellSpan = std::make_pair(1,1)) const;
     QRect tileGeometry(int x, int y, std::pair<int, int> cellSpan = std::make_pair(1,1)) const;
     void updateTileLabel(int x, int y);
     void updateItemLabel(const std::pair<int, int> &pos);
     void updateHudGeometry();
+    void updateHudFonts();
+    void updateHoverBuilding(const QPoint &mapPos);
+    void showBuildingInfo();
+    void updateBuildingInfoPosition(const QPoint &mapPos);
+    QPoint rootCellForCell(const QPoint &cell) const;
+    QString buildingInfoText(const Tile &tile) const;
     QPixmap scaledPixmapForSize(const QPixmap &pixmap, const QSize &targetSize) const;
     QPixmap blueprintPixmapForTile(const Tile &tile) const;
     void applyBlueprintPixmap(const Tile &tile);

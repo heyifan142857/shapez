@@ -2,7 +2,131 @@
 #include <QMutableListIterator>
 #include <QMouseEvent>
 #include "map.h"
+#include "configmanager.h"
 #include "globalupgradedialog.h"
+#include "localization.h"
+
+namespace {
+
+struct BuildingInfoEntry {
+    QString zhName;
+    QString enName;
+    QString zhDescription;
+    QString enDescription;
+};
+
+bool isInspectableTile(const Tile &tile)
+{
+    return tile.type == Tile::Type::Hub ||
+           tile.type == Tile::Type::Belt ||
+           tile.type == Tile::Type::Building;
+}
+
+BuildingInfoEntry buildingInfoEntryForTile(const Tile &tile)
+{
+    if (tile.type == Tile::Type::Hub) {
+        return {
+            "基地",
+            "Hub",
+            "接收并统计目标图形，也是整张地图的核心。",
+            "Receives target shapes, tracks progress, and acts as the center of your factory."
+        };
+    }
+
+    if (tile.type == Tile::Type::Belt) {
+        return {
+            "传送带",
+            "Belt",
+            "沿朝向运输物品，拖动铺设时可以自动形成转弯。",
+            "Moves items forward and can automatically form turns while dragging belts."
+        };
+    }
+
+    if (tile.name == "balancer") {
+        return {
+            "平衡器",
+            "Balancer",
+            "把输入流平均分配，适合整理产线吞吐。",
+            "Splits incoming flow evenly to keep your production lines balanced."
+        };
+    }
+
+    if (tile.name == "underground_belt_entry") {
+        return {
+            "地下传送带",
+            "Underground Belt",
+            "让物品从地下穿过拥挤区域，便于跨越其他线路。",
+            "Sends items underground so they can cross busy factory lines."
+        };
+    }
+
+    if (tile.name == "miner") {
+        return {
+            "开采器",
+            "Miner",
+            "放在矿物上持续采集资源，并朝前方输出。",
+            "Extracts resources from ore tiles continuously and outputs them forward."
+        };
+    }
+
+    if (tile.name == "cutter") {
+        return {
+            "切割机",
+            "Cutter",
+            "把输入图形切成两部分，为更复杂的目标做准备。",
+            "Cuts incoming shapes into two parts for more advanced production goals."
+        };
+    }
+
+    if (tile.name == "rotater") {
+        return {
+            "旋转器",
+            "Rotator",
+            "将输入图形旋转后输出，用来调整拼装方向。",
+            "Rotates incoming shapes before output so you can align later processing."
+        };
+    }
+
+    if (tile.name == "stacker") {
+        return {
+            "堆叠器",
+            "Stacker",
+            "把两路输入组合成堆叠图形，适合更高阶产物。",
+            "Combines two inputs into a stacked shape for more advanced recipes."
+        };
+    }
+
+    if (tile.name == "mixer") {
+        return {
+            "混合器",
+            "Mixer",
+            "将多路输入整合到同一产线，便于后续加工。",
+            "Merges multiple inputs into one combined line for later processing."
+        };
+    }
+
+    if (tile.name == "painter") {
+        return {
+            "染色器",
+            "Painter",
+            "给输入图形上色，让产线能够制作彩色目标。",
+            "Applies color to incoming shapes so you can produce painted targets."
+        };
+    }
+
+    if (tile.name == "trash") {
+        return {
+            "垃圾桶",
+            "Trash",
+            "销毁输入物品，用来清理多余或错误的产物。",
+            "Deletes incoming items so you can remove extra or incorrect outputs."
+        };
+    }
+
+    return {};
+}
+
+} // namespace
 
 Map::Map(int height, int width, QWidget* parent) :
     QWidget(parent), width(width), height(height), frameIndex(0) {
@@ -29,6 +153,23 @@ Map::Map(int height, int width, QWidget* parent) :
     blueprintLabel->setScaledContents(true);
     blueprintLabel->hide();
 
+    buildingInfoLabel = new QLabel(this);
+    buildingInfoLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    buildingInfoLabel->setTextFormat(Qt::RichText);
+    buildingInfoLabel->setWordWrap(true);
+    buildingInfoLabel->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    buildingInfoLabel->setStyleSheet(
+        "QLabel {"
+        "background-color: rgb(236, 238, 242);"
+        "color: #1F2328;"
+        "border: 1px solid rgba(31, 35, 40, 40);"
+        "border-radius: 10px;"
+        "padding: 10px;"
+        "}"
+    );
+    buildingInfoLabel->raise();
+    buildingInfoLabel->hide();
+
     place_beltEffect.setSource(QUrl("qrc:/res/sounds/place_belt.wav"));
     place_beltEffect.setVolume(0.5f);
 
@@ -42,6 +183,10 @@ Map::Map(int height, int width, QWidget* parent) :
     animationTimer = new QTimer(this);
     connect(animationTimer, &QTimer::timeout, this, &Map::updateAnimationFrame);
     animationTimer->start(20); // 每 20 毫秒更新一次帧
+
+    buildingInfoTimer = new QTimer(this);
+    buildingInfoTimer->setSingleShot(true);
+    connect(buildingInfoTimer, &QTimer::timeout, this, &Map::showBuildingInfo);
 
     questionLabel = new QLabel(this);
     questionLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
@@ -72,6 +217,7 @@ Map::~Map() {
 }
 
 void Map::setTile(int x, int y, Tile &tile, bool playSound) {
+    hideBuildingInfo();
     qDebug() << "setting pos("<<x<<", "<<y<<") a new tile";
     if (tile.type == Tile::Type::Hub) {
         hudAnchorRow = x + 1;
@@ -174,6 +320,7 @@ Tile Map::getTile(std::pair<int,int> pos) const{
 }
 
 bool Map::deleteTile(int x, int y){
+    hideBuildingInfo();
     qDebug() << "Deleting tile at (" << x << ", " << y << ")";
     if(tiles[x][y]->type == Tile::Type::Empty){
         return true;
@@ -622,6 +769,7 @@ void Map::clearMap()
 {
     miners.clear();
     clearBlueprint();
+    hideBuildingInfo();
 
     for (int x = 0; x < tiles.size(); ++x) {
         for (int y = 0; y < tiles[x].size(); ++y) {
@@ -738,7 +886,7 @@ std::pair<int,int> Map::nextPox(std::pair<int,int> originaPos,Tile &currentTile)
     return newPos;
 }
 
-bool Map::inMap(int x,int y){
+bool Map::inMap(int x,int y) const{
     if( x<0 || y<0 || x>=height || y>=width){
         return false;
     }else{
@@ -746,7 +894,7 @@ bool Map::inMap(int x,int y){
     }
 }
 
-bool Map::inMap(std::pair<int,int> originaPos){
+bool Map::inMap(std::pair<int,int> originaPos) const{
     int x = originaPos.first;
     int y = originaPos.second;
 
@@ -814,7 +962,14 @@ std::pair<std::pair<int,int>,std::pair<int,int>> Map::cutterOutPox(int x, int y,
 void Map::mouseMoveEvent(QMouseEvent *event)
 {
     updateBlueprintCursor(event->pos());
+    updateHoverBuilding(event->pos());
     QWidget::mouseMoveEvent(event);
+}
+
+void Map::leaveEvent(QEvent *event)
+{
+    hideBuildingInfo();
+    QWidget::leaveEvent(event);
 }
 
 void Map::paintEvent(QPaintEvent *event)
@@ -937,6 +1092,10 @@ void Map::updateLayout()
     countLabel->raise();
     levelLabel->raise();
     blueprintLabel->raise();
+    if (buildingInfoLabel->isVisible()) {
+        showBuildingInfo();
+    }
+    buildingInfoLabel->raise();
     updateBlueprintCursor(lastBlueprintCursorPos);
     update();
 }
@@ -1004,6 +1163,7 @@ void Map::updateItemLabel(const std::pair<int, int> &pos)
 void Map::updateHudGeometry()
 {
     const int tileSize = tilePixelSize();
+    updateHudFonts();
     questionLabel->setGeometry(
         hudAnchorColumn * tileSize - qRound(tileSize * 0.6),
         hudAnchorRow * tileSize,
@@ -1022,6 +1182,144 @@ void Map::updateHudGeometry()
         tileSize,
         tileSize
     );
+}
+
+void Map::updateHudFonts()
+{
+    QFont countFont = countLabel->font();
+    countFont.setPixelSize(qMax(12, qRound(tilePixelSize() * 0.56)));
+    countLabel->setFont(countFont);
+
+    QFont levelFont = levelLabel->font();
+    levelFont.setPixelSize(qMax(10, qRound(tilePixelSize() * 0.36)));
+    levelLabel->setFont(levelFont);
+}
+
+void Map::updateHoverBuilding(const QPoint &mapPos)
+{
+    lastHoverCursorPos = mapPos;
+
+    if (buildingInfoLabel->isVisible()) {
+        updateBuildingInfoPosition(mapPos);
+    }
+
+    const QPoint hoveredCell = gridPositionFromPoint(mapPos);
+    if (!inMap(hoveredCell.x(), hoveredCell.y())) {
+        hideBuildingInfo();
+        return;
+    }
+
+    const QPoint rootCell = rootCellForCell(hoveredCell);
+    if (!inMap(rootCell.x(), rootCell.y())) {
+        hideBuildingInfo();
+        return;
+    }
+
+    const Tile hoveredTile = getTile(rootCell.x(), rootCell.y());
+    if (!isInspectableTile(hoveredTile)) {
+        hideBuildingInfo();
+        return;
+    }
+
+    if (rootCell == hoveredBuildingRootCell) {
+        return;
+    }
+
+    hoveredBuildingRootCell = rootCell;
+    buildingInfoLabel->hide();
+    buildingInfoTimer->start(2000);
+}
+
+void Map::showBuildingInfo()
+{
+    if (!inMap(hoveredBuildingRootCell.x(), hoveredBuildingRootCell.y())) {
+        hideBuildingInfo();
+        return;
+    }
+
+    const Tile hoveredTile = getTile(hoveredBuildingRootCell.x(), hoveredBuildingRootCell.y());
+    const QString infoText = buildingInfoText(hoveredTile);
+    if (infoText.isEmpty()) {
+        hideBuildingInfo();
+        return;
+    }
+
+    buildingInfoLabel->setFixedWidth(qMax(220, qRound(tilePixelSize() * 5.6)));
+    buildingInfoLabel->setText(infoText);
+    buildingInfoLabel->adjustSize();
+    buildingInfoLabel->resize(buildingInfoLabel->width(), buildingInfoLabel->sizeHint().height());
+    updateBuildingInfoPosition(lastHoverCursorPos);
+    buildingInfoLabel->show();
+    buildingInfoLabel->raise();
+}
+
+void Map::updateBuildingInfoPosition(const QPoint &mapPos)
+{
+    if (!buildingInfoLabel) {
+        return;
+    }
+
+    const QPoint belowCursorOffset(18, 20);
+    const QPoint aboveCursorOffset(18, -(buildingInfoLabel->height() + 20));
+    QPoint desiredPosition = mapPos + belowCursorOffset;
+    const QRect bounds = rect().adjusted(12, 12, -12, -12);
+
+    if (mapPos.y() > rect().center().y() ||
+        desiredPosition.y() + buildingInfoLabel->height() > bounds.bottom()) {
+        desiredPosition = mapPos + aboveCursorOffset;
+    }
+
+    if (desiredPosition.x() + buildingInfoLabel->width() > bounds.right()) {
+        desiredPosition.setX(bounds.right() - buildingInfoLabel->width());
+    }
+    if (desiredPosition.y() + buildingInfoLabel->height() > bounds.bottom()) {
+        desiredPosition.setY(bounds.bottom() - buildingInfoLabel->height());
+    }
+
+    desiredPosition.setX(qMax(bounds.left(), desiredPosition.x()));
+    desiredPosition.setY(qMax(bounds.top(), desiredPosition.y()));
+    buildingInfoLabel->move(desiredPosition);
+}
+
+QPoint Map::rootCellForCell(const QPoint &cell) const
+{
+    if (!inMap(cell.x(), cell.y())) {
+        return QPoint(-1, -1);
+    }
+
+    const Tile *tile = tiles[cell.x()][cell.y()];
+    if (tile && tile->father != nullptr) {
+        return QPoint(tile->father->first, tile->father->second);
+    }
+
+    return cell;
+}
+
+QString Map::buildingInfoText(const Tile &tile) const
+{
+    const BuildingInfoEntry entry = buildingInfoEntryForTile(tile);
+    if (entry.enName.isEmpty()) {
+        return {};
+    }
+
+    ConfigManager config;
+    const QString languageCode = config.getLanguage();
+    const QString localizedName = Localization::text(languageCode, entry.zhName, entry.enName).toHtmlEscaped();
+    const QString localizedDescription = Localization::text(languageCode, entry.zhDescription, entry.enDescription).toHtmlEscaped();
+
+    return QString("<b>%1</b><br/>%2").arg(localizedName, localizedDescription);
+}
+
+void Map::hideBuildingInfo()
+{
+    hoveredBuildingRootCell = QPoint(-1, -1);
+    if (buildingInfoTimer) {
+        buildingInfoTimer->stop();
+    }
+    if (buildingInfoLabel) {
+        buildingInfoLabel->hide();
+        buildingInfoLabel->clear();
+    }
 }
 
 QPixmap Map::scaledPixmapForSize(const QPixmap &pixmap, const QSize &targetSize) const
