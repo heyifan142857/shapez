@@ -1,4 +1,5 @@
 #include "configmanager.h"
+#include "localization.h"
 
 ConfigManager::ConfigManager(QObject *parent)
     : QObject(parent)
@@ -35,4 +36,14 @@ bool ConfigManager::getUpgradeStatus(const QString &upgradeName) const
 void ConfigManager::setUpgradeStatus(const QString &upgradeName, bool status)
 {
     settings->setValue("Upgrades/" + upgradeName, status);
+}
+
+QString ConfigManager::getLanguage() const
+{
+    return Localization::normalizeLanguageCode(settings->value("Language", "zh-CN").toString());
+}
+
+void ConfigManager::setLanguage(const QString &languageCode)
+{
+    settings->setValue("Language", Localization::normalizeLanguageCode(languageCode));
 }

@@ -1,5 +1,7 @@
 #include "mainscene.h"
 #include <QMessageBox>
+#include "configmanager.h"
+#include "localization.h"
 #include "./ui_mainscene.h"
 Mainscene::Mainscene(QWidget *parent)
     : QWidget(parent)
@@ -21,9 +23,11 @@ Mainscene::Mainscene(QWidget *parent)
     audioOutput->setVolume(0.3);
     player->play();
 
+    ConfigManager config;
+    languageCode = config.getLanguage();
 
     //添加各种按钮
-    QPushButton * newbtn = new QPushButton("新游戏",this);
+    newbtn = new QPushButton(this);
     newbtn->setStyleSheet("QPushButton {"
                           "border-radius: 8px;"
                           "background-color: rgb(79,152,221);"
@@ -38,7 +42,7 @@ Mainscene::Mainscene(QWidget *parent)
     QFont font1("Microsoft YaHei", 16, QFont::Normal);
     newbtn->setFont(font1);
 
-    QPushButton * readbtn = new QPushButton("读取存档",this);
+    readbtn = new QPushButton(this);
     readbtn->setStyleSheet("QPushButton {"
                            "border-radius: 8px;"
                            "background-color: rgb(79,152,221);"
@@ -53,7 +57,7 @@ Mainscene::Mainscene(QWidget *parent)
     QFont font2("Microsoft YaHei", 16, QFont::Normal);
     readbtn->setFont(font2);
 
-    QPushButton * continuebtn = new QPushButton("继续游戏",this);
+    continuebtn = new QPushButton(this);
     continuebtn->setStyleSheet("QPushButton {"
                                "border-radius: 8px;"
                                "background-color: rgb(97,183,104);"
@@ -98,12 +102,28 @@ Mainscene::Mainscene(QWidget *parent)
         );
     githubbtn->move(40,780);
 
+    languagebtn = new QPushButton(this);
+    languagebtn->setFixedSize(80, 80);
+    languagebtn->setIconSize(QSize(54,54));
+    languagebtn->setStyleSheet(
+        "QPushButton {"
+        " border: none;"
+        " background-color: white;"
+        " border-radius: 40px;"
+        " padding: 0;"
+        " margin: 0;"
+        "}"
+    );
+    languagebtn->move(130,780);
+    updateLanguageButtonIcon();
+    applyLanguage();
+
     QPropertyAnimation *newbtnanimation = new QPropertyAnimation(newbtn, "geometry");
     newbtnanimation->setDuration(100);
     newbtnanimation->setEasingCurve(QEasingCurve::OutQuad);
     QRect newbtnGeometry = newbtn->geometry();
     connect(newbtn,&QPushButton::pressed,this,[=](){
-        qDebug() << "点击新游戏";
+        qDebug() << "New Game clicked";
         QRect rect = newbtn->geometry();
         newbtnanimation->setStartValue(rect);
         newbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
@@ -124,10 +144,10 @@ Mainscene::Mainscene(QWidget *parent)
                 this->show();  // 当 Gamescene 被销毁时，重新显示 Mainscene
                 player->play();
                 gamescene = nullptr;
-                qDebug() << "当前在主界面";
+                qDebug() << "Main menu is active";
             });
             gamescene->show();
-            qDebug() << "当前在游戏界面";
+            qDebug() << "Game scene is active";
         });
     });
 
@@ -136,7 +156,7 @@ Mainscene::Mainscene(QWidget *parent)
     readbtnanimation->setEasingCurve(QEasingCurve::OutQuad);
     QRect readbtnGeometry = readbtn->geometry();
     connect(readbtn,&QPushButton::pressed,this,[=](){
-        qDebug() << "点击读取存档";
+        qDebug() << "Load Save clicked";
         QRect rect = readbtn->geometry();
         readbtnanimation->setStartValue(rect);
         readbtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
@@ -149,12 +169,17 @@ Mainscene::Mainscene(QWidget *parent)
         readbtnanimation->start();
 
         QTimer::singleShot(500,this,[=](){
-            QString filename = QFileDialog::getOpenFileName(this, tr("选择存档文件"), "saves", tr("JSON 文件 (*.json)"));
+            QString filename = QFileDialog::getOpenFileName(
+                this,
+                t("选择存档文件", "Select Save File"),
+                "saves",
+                t("JSON 文件 (*.json)", "JSON Files (*.json)")
+            );
 
             if (!filename.isEmpty()) {
                 loadGameAndSwitchToGameScene(filename);
             } else {
-                QMessageBox::warning(this, "警告", "未选择存档文件");
+                QMessageBox::warning(this, t("警告", "Warning"), t("未选择存档文件", "No save file was selected."));
             }
         });
     });
@@ -165,7 +190,7 @@ Mainscene::Mainscene(QWidget *parent)
     continuebtnanimation->setEasingCurve(QEasingCurve::OutQuad);
     QRect continuebtnGeometry = continuebtn->geometry();
     connect(continuebtn,&QPushButton::pressed,this,[=](){
-        qDebug() << "点击继续游戏";
+        qDebug() << "Continue clicked";
         QRect rect = continuebtn->geometry();
         continuebtnanimation->setStartValue(rect);
         continuebtnanimation->setEndValue(QRect(rect.x() + rect.width() * 0.025, rect.y() + rect.height() * 0.025,
@@ -184,22 +209,28 @@ Mainscene::Mainscene(QWidget *parent)
             if (file.exists()) {
                 loadGameAndSwitchToGameScene(defaultSaveFile);
             } else {
-                QMessageBox::warning(this, "继续游戏", "未找到存档文件，请开始新游戏或加载其他存档。");
+                QMessageBox::warning(
+                    this,
+                    t("继续游戏", "Continue"),
+                    t("未找到存档文件，请开始新游戏或加载其他存档。", "No save file was found. Start a new game or load another save.")
+                );
             }
         });
     });
 
     connect(getonsteambtn,&QPushButton::clicked,this,[](){
-        qDebug() << "点击get_on_steam图标";
+        qDebug() << "Steam icon clicked";
         QUrl url("https://store.steampowered.com/app/1318690/Shapez/");
         QDesktopServices::openUrl(url);
     });
 
     connect(githubbtn,&QPushButton::clicked,this,[](){
-        qDebug() << "点击github图标";
+        qDebug() << "GitHub icon clicked";
         QUrl url("https://github.com/heyifan142857/shapez");
         QDesktopServices::openUrl(url);
     });
+
+    connect(languagebtn, &QPushButton::clicked, this, &Mainscene::toggleLanguage);
 }
 
 void Mainscene::loadGameAndSwitchToGameScene(const QString& filename) {
@@ -217,10 +248,10 @@ void Mainscene::loadGameAndSwitchToGameScene(const QString& filename) {
         this->show();
         player->play();
         gamescene = nullptr;
-        qDebug() << "当前在主界面";
+        qDebug() << "Main menu is active";
     });
 
-    qDebug() << "当前在游戏界面";
+    qDebug() << "Game scene is active";
 }
 
 void Mainscene::loadGameAndSwitchToGameScene() {
@@ -239,16 +270,48 @@ void Mainscene::loadGameAndSwitchToGameScene() {
         this->show();
         player->play();
         gamescene = nullptr;
-        qDebug() << "当前在主界面";
+        qDebug() << "Main menu is active";
     });
 
-    qDebug() << "当前在游戏界面";
+    qDebug() << "Game scene is active";
 }
 
 Mainscene::~Mainscene()
 {
     delete gamescene;
     delete ui;
+}
+
+void Mainscene::applyLanguage()
+{
+    newbtn->setText(t("新游戏", "New Game"));
+    readbtn->setText(t("读取存档", "Load Save"));
+    continuebtn->setText(t("继续游戏", "Continue"));
+    languagebtn->setToolTip(t("切换语言", "Switch Language"));
+}
+
+void Mainscene::toggleLanguage()
+{
+    languageCode = Localization::isEnglish(languageCode) ? "zh-CN" : "en";
+
+    ConfigManager config;
+    config.setLanguage(languageCode);
+
+    updateLanguageButtonIcon();
+    applyLanguage();
+}
+
+QString Mainscene::t(const QString &zhText, const QString &enText) const
+{
+    return Localization::text(languageCode, zhText, enText);
+}
+
+void Mainscene::updateLanguageButtonIcon()
+{
+    const QString iconPath = Localization::isEnglish(languageCode)
+        ? QString(":/res/languages/en.svg")
+        : QString(":/res/languages/zh-CN.svg");
+    languagebtn->setIcon(QIcon(iconPath));
 }
 
 void Mainscene::paintEvent(QPaintEvent *){

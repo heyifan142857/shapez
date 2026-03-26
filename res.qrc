@@ -198,5 +198,7 @@
         <file>res/save.png</file>
         <file>res/settings_menu_exit.png</file>
         <file>res/statistics.png</file>
+        <file>res/languages/en.svg</file>
+        <file>res/languages/zh-CN.svg</file>
     </qresource>
 </RCC>

@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QSettings>
+#include <QString>
 
 class ConfigManager: public QObject
 {
@@ -20,6 +21,10 @@ public:
     bool getUpgradeStatus(const QString &upgradeName) const;
 
     void setUpgradeStatus(const QString &upgradeName, bool status);
+
+    QString getLanguage() const;
+
+    void setLanguage(const QString &languageCode);
 
 private:
     QSettings *settings;

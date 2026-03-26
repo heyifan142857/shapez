@@ -1,77 +1,63 @@
-#include "GlobalUpgradeDialog.h"
+#include "globalupgradedialog.h"
 #include <QMessageBox>
+#include "localization.h"
 
 GlobalUpgradeDialog::GlobalUpgradeDialog(ConfigManager &config, QWidget *parent)
     : QDialog(parent), config(config)  // 初始化 config
 {
-    setWindowTitle("购买升级");
+    const QString languageCode = config.getLanguage();
+    const auto text = [&](const QString &zhText, const QString &enText) {
+        return Localization::text(languageCode, zhText, enText);
+    };
+
+    setWindowTitle(text("购买升级", "Buy Upgrades"));
 
     QVBoxLayout *layout = new QVBoxLayout(this);
 
     goldLabel = new QLabel(this);
     int gold = this->config.getGold();
-    goldLabel->setText("当前金币: " + QString::number(gold));
+    goldLabel->setText(text("当前金币: ", "Current Gold: ") + QString::number(gold));
     layout->addWidget(goldLabel);
 
     // 升级矿物
-    QPushButton *mineButton = new QPushButton("升级矿物(100)", this);
-    connect(mineButton, &QPushButton::clicked, this, [&config,this]() {
+    QPushButton *mineButton = new QPushButton(text("升级矿物(100)", "Upgrade Mining Output (100)"), this);
+    connect(mineButton, &QPushButton::clicked, this, [&config,this,text]() {
         if (config.getUpgradeStatus("mine")) {
-            QMessageBox::information(this, "提示", "矿物已升级，无需重复购买！");
+            QMessageBox::information(this, text("提示", "Notice"), text("矿物已升级，无需重复购买！", "Mining output has already been upgraded."));
         } else {
             int cost = 100;
             if (config.getGold() >= cost) {
                 config.setGold(config.getGold() - cost);
                 config.setUpgradeStatus("mine", true);
                 selectedOption = 1;
-                QMessageBox::information(this, "成功", "矿物升级成功！");
+                QMessageBox::information(this, text("成功", "Success"), text("矿物升级成功！", "Mining output upgraded successfully."));
                 close();
             } else {
-                QMessageBox::warning(this, "失败", "金币不足，无法升级！");
+                QMessageBox::warning(this, text("失败", "Failed"), text("金币不足，无法升级！", "Not enough gold for this upgrade."));
             }
         }
     });
     layout->addWidget(mineButton);
 
     // 升级切割机
-    QPushButton *cutButton = new QPushButton("升级切割机(150)", this);
-    connect(cutButton, &QPushButton::clicked, this, [&config,this]() {
+    QPushButton *cutButton = new QPushButton(text("升级切割机(150)", "Upgrade Cutters (150)"), this);
+    connect(cutButton, &QPushButton::clicked, this, [&config,this,text]() {
         if (config.getUpgradeStatus("cut")) {
-            QMessageBox::information(this, "提示", "切割机已升级，无需重复购买！");
+            QMessageBox::information(this, text("提示", "Notice"), text("切割机已升级，无需重复购买！", "Cutters have already been upgraded."));
         } else {
             int cost = 150;
             if (config.getGold() >= cost) {
                 config.setGold(config.getGold() - cost);
                 config.setUpgradeStatus("cut", true);
                 selectedOption = 2;
-                QMessageBox::information(this, "成功", "切割机升级成功！");
+                QMessageBox::information(this, text("成功", "Success"), text("切割机升级成功！", "Cutters upgraded successfully."));
                 close();
             } else {
-                QMessageBox::warning(this, "失败", "金币不足，无法升级！");
+                QMessageBox::warning(this, text("失败", "Failed"), text("金币不足，无法升级！", "Not enough gold for this upgrade."));
             }
         }
     });
     layout->addWidget(cutButton);
-
-    // 解锁矿物
-    QPushButton *moremineButton = new QPushButton("解锁矿物(200)", this);
-    connect(moremineButton, &QPushButton::clicked, this, [&config,this]() {
-        if (config.getUpgradeStatus("moremine")) {
-            QMessageBox::information(this, "提示", "矿物已解锁，无需重复购买！");
-        } else {
-            int cost = 200;
-            if (config.getGold() >= cost) {
-                config.setGold(config.getGold() - cost);
-                config.setUpgradeStatus("moremine", true);
-                selectedOption = 3;
-                QMessageBox::information(this, "成功", "矿物解锁成功！");
-                close();
-            } else {
-                QMessageBox::warning(this, "失败", "金币不足，无法解锁！");
-            }
-        }
-    });
-    layout->addWidget(moremineButton);
 
     setLayout(layout);
 }
