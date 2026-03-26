@@ -7,7 +7,8 @@
 #include <QMouseEvent>
 #include <QPushButton>
 #include <QSoundEffect>
-#include "Map.h"
+#include <QVector>
+#include "map.h"
 
 class Gamescene : public QWidget
 {
@@ -19,6 +20,8 @@ public:
 
     void setPuzzle();
 
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
     void mousePressEvent(QMouseEvent *event) override;
 
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -26,6 +29,8 @@ public:
     void mouseReleaseEvent(QMouseEvent *event) override;
 
     void keyPressEvent(QKeyEvent *event) override;
+
+    void resizeEvent(QResizeEvent *event) override;
 
     void paintEvent(QPaintEvent *) override;
 
@@ -39,14 +44,36 @@ public:
 
     void returnToMainScene();
 
-    void upgrateMine();
     Map * map = nullptr;
 
     bool isPlaceItem;
     Tile* currentTile;
 
 private:
-    //QLabel * test;
+    void clearPlacementSelection();
+    void setPlacementTile(Tile *tile);
+    void refreshPlacementPreview();
+    void updateInterfaceLayout();
+    QRect mapViewportRect() const;
+    QPoint clampedMapPosition(const QPoint &desiredPosition) const;
+    void applyMapViewportMask();
+    void panMapBy(const QPoint &delta);
+    void zoomMapAt(const QPoint &viewportPos, double zoomDelta);
+    QString t(const QString &zhText, const QString &enText) const;
+    bool handleMapMousePress(QMouseEvent *event);
+    bool handleMapMouseMove(QMouseEvent *event);
+    bool handleMapMouseRelease(QMouseEvent *event);
+    void populateStartingResources();
+    void placeRandomResourceCluster(const QString &resourceName, int rowMin, int rowMax, int colMin, int colMax);
+    void updateTexts();
+    void beginBeltDrag(const QPoint &startCell);
+    void updateBeltDragPath(const QPoint &targetCell);
+    void rebuildBeltDragPath();
+    void clearBeltDragPath();
+    Tile beltTileForPathIndex(int index) const;
+    int directionForStep(const QPoint &from, const QPoint &to) const;
+    bool isCellAvailableForDraggedBelt(const QPoint &cell) const;
+
     int defaultBeltDirection;
 
     QPushButton * beltbtn;
@@ -59,12 +86,22 @@ private:
     QPushButton * mixerbtn;
     QPushButton * painterbtn;
     QPushButton * trashbtn;
+    QPushButton * backbtn;
+    QPushButton * savebtn;
+    QPushButton * upgratebtn;
 
     QSoundEffect ui_clickEffect;
 
     QFont font;
 
     bool isDragging;
+    bool isPanning = false;
+    bool isBeltDragging = false;
+    bool hasInitializedMapPosition = false;
+    QPoint lastPanGlobalPos;
+    QVector<QPoint> beltDragPath;
+    QVector<QPoint> activeDraggedBeltCells;
+    QString languageCode = "zh-CN";
 
     QTimer* itemMoveTimer;
     QTimer* minerTimer;

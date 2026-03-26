@@ -40,9 +40,19 @@ public:
 
 
 private:
+    void applyLanguage();
+    void toggleLanguage();
+    QString t(const QString &zhText, const QString &enText) const;
+    void updateLanguageButtonIcon();
+
     QMediaPlayer *player;
     QAudioOutput *audioOutput;
     Gamescene *gamescene = nullptr;
+    QPushButton *newbtn = nullptr;
+    QPushButton *readbtn = nullptr;
+    QPushButton *continuebtn = nullptr;
+    QPushButton *languagebtn = nullptr;
+    QString languageCode = "zh-CN";
 private:
     Ui::MainScene *ui;
 };

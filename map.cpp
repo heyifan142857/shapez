@@ -10,26 +10,29 @@ Map::Map(int height, int width, QWidget* parent) :
         qWarning() << "Invalid map dimensions:" << width << height;
         return;
     }
+
+    setMouseTracking(true);
+
     tiles.resize(height);
     for (int x = 0; x < height; ++x) {
         tiles[x].resize(width);
         for (int y = 0; y < width; ++y) {
             tiles[x][y] = new Tile();  // 初始化 Tile
             tiles[x][y]->label = new QLabel(this);
-            tiles[x][y]->label->setGeometry(y * TILESIZE, x * TILESIZE, TILESIZE, TILESIZE);
+            tiles[x][y]->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+            tiles[x][y]->label->hide();
         }
     }
 
-    draggingImageLabel = new QLabel(this);
-    draggingImageLabel->setPixmap(QPixmap(":/res/blueprints/belt_top.png")); // 设置图像
-    draggingImageLabel->resize(50, 50);
-    draggingImageLabel->show();
-    isDragging = false;
+    blueprintLabel = new QLabel(this);
+    blueprintLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    blueprintLabel->setScaledContents(true);
+    blueprintLabel->hide();
 
-    place_beltEffect.setSource(QUrl::fromLocalFile(":/res/sounds/place_belt.wav"));
+    place_beltEffect.setSource(QUrl("qrc:/res/sounds/place_belt.wav"));
     place_beltEffect.setVolume(0.5f);
 
-    place_buildingEffect.setSource(QUrl::fromLocalFile(":/res/sounds/place_building.wav"));
+    place_buildingEffect.setSource(QUrl("qrc:/res/sounds/place_building.wav"));
     place_buildingEffect.setVolume(0.5f);
 
     current = 0;
@@ -41,42 +44,60 @@ Map::Map(int height, int width, QWidget* parent) :
     animationTimer->start(20); // 每 20 毫秒更新一次帧
 
     questionLabel = new QLabel(this);
-    questionLabel->setGeometry(15 * TILESIZE - 30, 8 * TILESIZE, 2 * TILESIZE, 2 * TILESIZE);
+    questionLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    questionLabel->setScaledContents(true);
     questionLabel->show();
     questionLabel->raise();
 
     countLabel = new QLabel(this);
-    countLabel->setGeometry(15 * TILESIZE + 60, 8 * TILESIZE, 3 * TILESIZE, 2 * TILESIZE);
+    countLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     countLabel->show();
     countLabel->raise();
 
     levelLabel = new QLabel(this);
-    levelLabel->setGeometry(15 * TILESIZE - 15, 7 * TILESIZE + 15, TILESIZE, TILESIZE);
+    levelLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     levelLabel->show();
     levelLabel->raise();
+
+    updateLayout();
 }
 
 Map::~Map() {
-    delete animationTimer;
+    for (int x = 0; x < tiles.size(); ++x) {
+        for (int y = 0; y < tiles[x].size(); ++y) {
+            delete tiles[x][y];
+            tiles[x][y] = nullptr;
+        }
+    }
 }
 
-void Map::setTile(int x, int y, Tile &tile) {
+void Map::setTile(int x, int y, Tile &tile, bool playSound) {
     qDebug() << "setting pos("<<x<<", "<<y<<") a new tile";
+    if (tile.type == Tile::Type::Hub) {
+        hudAnchorRow = x + 1;
+        hudAnchorColumn = y + 1;
+        updateHudGeometry();
+        questionLabel->raise();
+        countLabel->raise();
+        levelLabel->raise();
+    }
     if(tile.type == Tile::Type::Building && tile.name == "miner"){
-        if(tiles[x][y]->type == Tile::Type::Resource){
-            tile.mine = tiles[x][y];
+        if(tile.mine == nullptr && tiles[x][y]->type == Tile::Type::Resource){
+            tile.mine = new Tile(*tiles[x][y]);
+        }
+        if (tile.mine != nullptr) {
             miners.append(std::make_pair(x,y));
             qDebug() << "add a mine to miners";
-        }else{
-            delete tiles[x][y];
         }
+        delete tiles[x][y];
         tiles[x][y] = new Tile(tile);
         tiles[x][y]->label = new QLabel(this);
-        tiles[x][y]->label->setGeometry(y * TILESIZE, x * TILESIZE, tile.size.second * TILESIZE, tile.size.first * TILESIZE);
-        tiles[x][y]->label->setPixmap(tile.image);
-        tiles[x][y]->label->show();
+        tiles[x][y]->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+        updateTileLabel(x, y);
 
-        place_buildingEffect.play();
+        if (playSound) {
+            place_buildingEffect.play();
+        }
         qDebug() << "successfully set pos("<<x<< ", " <<y<<") a new tile";
         return;
     }
@@ -94,18 +115,17 @@ void Map::setTile(int x, int y, Tile &tile) {
         delete tiles[x][y];
         tiles[x][y] = new Tile(tile);
         tiles[x][y]->label = new QLabel(this);
-        tiles[x][y]->label->setGeometry(y * TILESIZE, x * TILESIZE, tile.size.second * TILESIZE, tile.size.first * TILESIZE);
-        if (tile.type == Tile::Type::Belt && !tile.images.empty()) {
-            if(frameIndex>tiles[x][y]->images.size()){
-                qWarning() << "图片缺失";
+        tiles[x][y]->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+        if (tile.type == Tile::Type::Belt) {
+            if (playSound) {
+                place_beltEffect.play();
             }
-            place_beltEffect.play();
-            tiles[x][y]->label->setPixmap(tile.images[frameIndex]);
         } else {
-            place_buildingEffect.play();
-            tiles[x][y]->label->setPixmap(tile.image);
+            if (playSound) {
+                place_buildingEffect.play();
+            }
         }
-        tiles[x][y]->label->show();
+        updateTileLabel(x, y);
         qDebug() << "successfully set pos("<<x<< ", " <<y<<") a new tile";
     }
 
@@ -118,8 +138,10 @@ void Map::setTile(int x, int y, Tile &tile) {
                     delete tiles[x + i][y + j];
                     tiles[x + i][y + j] = new Tile(tile);
                     tiles[x + i][y + j]->label = new QLabel(this);
+                    tiles[x + i][y + j]->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
                     tiles[x + i][y + j]->father = new std::pair<int, int>(x,y);
                     tiles[x][y]->sons.push_back(std::make_pair(x + i, y + j));
+                    updateTileLabel(x + i, y + j);
                 }
             }
         }
@@ -163,7 +185,10 @@ bool Map::deleteTile(int x, int y){
     if(tiles[x][y]->type == Tile::Type::Building && tiles[x][y]->name == "miner" && tiles[x][y]->mine){
         Tile* temp = tiles[x][y];
         tiles[x][y] = new Tile(*temp->mine);
+        tiles[x][y]->label = new QLabel(this);
+        tiles[x][y]->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
         delete temp;
+        updateTileLabel(x, y);
         return true;
     }
     if(tiles[x][y]->father != nullptr){
@@ -175,12 +200,14 @@ bool Map::deleteTile(int x, int y){
             delete tiles[son.first][son.second];
             tiles[son.first][son.second] = new Tile();
             tiles[son.first][son.second]->label = new QLabel(this);
-            tiles[son.first][son.second]->label->setGeometry(son.second * TILESIZE, son.first * TILESIZE, TILESIZE, TILESIZE);
+            tiles[son.first][son.second]->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+            updateTileLabel(son.first, son.second);
         }
         delete tiles[father->first][father->second];
         tiles[father->first][father->second] = new Tile();
         tiles[father->first][father->second]->label = new QLabel(this);
-        tiles[father->first][father->second]->label->setGeometry(father->second * TILESIZE, father->first * TILESIZE, TILESIZE, TILESIZE);
+        tiles[father->first][father->second]->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+        updateTileLabel(father->first, father->second);
         return true;
     }else{
         if(tiles[x][y]->size != std::make_pair(1,1)){
@@ -191,13 +218,15 @@ bool Map::deleteTile(int x, int y){
                 delete tiles[son.first][son.second];
                 tiles[son.first][son.second] = new Tile();
                 tiles[son.first][son.second]->label = new QLabel(this);
-                tiles[son.first][son.second]->label->setGeometry(son.second * TILESIZE, son.first * TILESIZE, TILESIZE, TILESIZE);
+                tiles[son.first][son.second]->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+                updateTileLabel(son.first, son.second);
             }
         }
         delete tiles[x][y];
         tiles[x][y] = new Tile();
         tiles[x][y]->label = new QLabel(this);
-        tiles[x][y]->label->setGeometry(y * TILESIZE, x * TILESIZE, TILESIZE, TILESIZE);
+        tiles[x][y]->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+        updateTileLabel(x, y);
         return true;
     }
 };
@@ -257,9 +286,7 @@ void Map::moveSingleItem(int x,int y,QSet<std::pair<int, int>> &movedItems){
         tiles[item->pos.first][item->pos.second]->item = nullptr;
         item->pos = newPos;
         tiles[newPos.first][newPos.second]->item = item;
-        tiles[newPos.first][newPos.second]->item->label->move(newPos.second * TILESIZE, newPos.first * TILESIZE);
-        tiles[newPos.first][newPos.second]->item->label->show();
-        tiles[newPos.first][newPos.second]->item->label->raise();
+        updateItemLabel(newPos);
         movedItems.insert({newPos.first,newPos.second});
     }else if(tiles[newPos.first][newPos.second]->type == Tile::Type::Building){
         if(tiles[newPos.first][newPos.second]->name == "cutter"){
@@ -316,19 +343,21 @@ void Map::moveSingleItem(int x,int y,QSet<std::pair<int, int>> &movedItems){
                     tiles[outItemPos.first.first][outItemPos.first.second]->item = items.first;
                     tiles[outItemPos.first.first][outItemPos.first.second]->item->pos = outItemPos.first;
                     tiles[outItemPos.first.first][outItemPos.first.second]->item->label = new QLabel(this);
-                    tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setGeometry(outItemPos.first.second * TILESIZE, outItemPos.first.first * TILESIZE, TILESIZE, TILESIZE);
+                    tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
                     QPixmap pixmap1 =  tiles[outItemPos.first.first][outItemPos.first.second]->item->getPixmap();
-                    tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setPixmap(pixmap1);
+                    tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setPixmap(scaledPixmapForSize(pixmap1, cellPixelSize()));
                     tiles[outItemPos.first.first][outItemPos.first.second]->item->label->hide();
+                    tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setGeometry(tileGeometry(outItemPos.first.first, outItemPos.first.second));
                     tiles[outItemPos.first.first][outItemPos.first.second]->item->label->raise();
 
                     tiles[outItemPos.second.first][outItemPos.second.second]->item = items.second;
                     tiles[outItemPos.second.first][outItemPos.second.second]->item->pos = outItemPos.second;
                     tiles[outItemPos.second.first][outItemPos.second.second]->item->label = new QLabel(this);
-                    tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setGeometry(outItemPos.second.second * TILESIZE, outItemPos.second.first * TILESIZE, TILESIZE, TILESIZE);
+                    tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
                     QPixmap pixmap2 =  tiles[outItemPos.second.first][outItemPos.second.second]->item->getPixmap();
-                    tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setPixmap(pixmap2);
+                    tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setPixmap(scaledPixmapForSize(pixmap2, cellPixelSize()));
                     tiles[outItemPos.second.first][outItemPos.second.second]->item->label->hide();
+                    tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setGeometry(tileGeometry(outItemPos.second.first, outItemPos.second.second));
                     tiles[outItemPos.second.first][outItemPos.second.second]->item->label->raise();
                     movedItems.insert({outItemPos.first.first,outItemPos.first.second});
                     movedItems.insert({outItemPos.second.first,outItemPos.second.second});
@@ -380,10 +409,11 @@ void Map::updateAnimationFrame() {
         for (int y = 0; y < tiles[x].size(); ++y) {
             Tile* tile = tiles[x][y];
             if (tile->type == Tile::Type::Belt && !tile->images.empty()) {
-                if(frameIndex > tile->images.size()){
-                    qWarning() << "图片缺失";
+                if(frameIndex >= tile->images.size()){
+                    qWarning() << "Missing belt animation frame";
+                    continue;
                 }
-                tile->label->setPixmap(tile->images[frameIndex]);  // 更新 QLabel 的图像
+                tile->label->setPixmap(scaledPixmapForSize(tile->images[frameIndex], cellPixelSize(tile->size)));  // 更新 QLabel 的图像
             }
         }
     }
@@ -409,11 +439,8 @@ void Map::performMining(){
                         QString minename = tiles[pos.first][pos.second]->mine->name;
                         tiles[generatePos.first][generatePos.second]->item = new Item(minename,generatePos);
                         tiles[generatePos.first][generatePos.second]->item->label = new QLabel(this);
-                        tiles[generatePos.first][generatePos.second]->item->label->setGeometry(generatePos.second * TILESIZE, generatePos.first * TILESIZE, TILESIZE, TILESIZE);
-                        QPixmap minePixmap = tiles[generatePos.first][generatePos.second]->item->getPixmap();
-                        tiles[generatePos.first][generatePos.second]->item->label->setPixmap(minePixmap);
-                        tiles[generatePos.first][generatePos.second]->item->label->show();
-                        tiles[generatePos.first][generatePos.second]->item->label->raise();
+                        tiles[generatePos.first][generatePos.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+                        updateItemLabel(generatePos);
                         //items.append();
                         //tiles[generatePos.first][generatePos.second]->item->label->setAttribute(Qt::WA_AlwaysStackOnTop, true);;
                     }
@@ -468,9 +495,7 @@ void Map::cutterUpdate(){
                     tiles[item->pos.first][item->pos.second]->item = nullptr;
                     item->pos = newPos;
                     tiles[newPos.first][newPos.second]->item = item;
-                    tiles[newPos.first][newPos.second]->item->label->move(newPos.second * TILESIZE, newPos.first * TILESIZE);
-                    tiles[newPos.first][newPos.second]->item->label->show();
-                    tiles[newPos.first][newPos.second]->item->label->raise();
+                    updateItemLabel(newPos);
                 }else if(tiles[newPos.first][newPos.second]->type == Tile::Type::Building){
                     if(tiles[newPos.first][newPos.second]->name == "cutter"){
                         int realDirection = tiles[x][y]->direction;
@@ -509,19 +534,21 @@ void Map::cutterUpdate(){
                                 tiles[outItemPos.first.first][outItemPos.first.second]->item = items.first;
                                 tiles[outItemPos.first.first][outItemPos.first.second]->item->pos = outItemPos.first;
                                 tiles[outItemPos.first.first][outItemPos.first.second]->item->label = new QLabel(this);
-                                tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setGeometry(outItemPos.first.second * TILESIZE, outItemPos.first.first * TILESIZE, TILESIZE, TILESIZE);
+                                tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
                                 QPixmap pixmap1 =  tiles[outItemPos.first.first][outItemPos.first.second]->item->getPixmap();
-                                tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setPixmap(pixmap1);
+                                tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setPixmap(scaledPixmapForSize(pixmap1, cellPixelSize()));
                                 tiles[outItemPos.first.first][outItemPos.first.second]->item->label->hide();
+                                tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setGeometry(tileGeometry(outItemPos.first.first, outItemPos.first.second));
                                 tiles[outItemPos.first.first][outItemPos.first.second]->item->label->raise();
 
                                 tiles[outItemPos.second.first][outItemPos.second.second]->item = items.second;
                                 tiles[outItemPos.second.first][outItemPos.second.second]->item->pos = outItemPos.second;
                                 tiles[outItemPos.second.first][outItemPos.second.second]->item->label = new QLabel(this);
-                                tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setGeometry(outItemPos.second.second * TILESIZE, outItemPos.second.first * TILESIZE, TILESIZE, TILESIZE);
+                                tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
                                 QPixmap pixmap2 =  tiles[outItemPos.second.first][outItemPos.second.second]->item->getPixmap();
-                                tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setPixmap(pixmap2);
+                                tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setPixmap(scaledPixmapForSize(pixmap2, cellPixelSize()));
                                 tiles[outItemPos.second.first][outItemPos.second.second]->item->label->hide();
+                                tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setGeometry(tileGeometry(outItemPos.second.first, outItemPos.second.second));
                                 tiles[outItemPos.second.first][outItemPos.second.second]->item->label->raise();
                             }else{
                                 return;
@@ -549,11 +576,8 @@ void Map::cutterUpdate(){
 void Map::setItem(std::pair<int,int> pos, Item *item){
     tiles[pos.first][pos.second]->item = item;
     tiles[pos.first][pos.second]->item->label = new QLabel(this);
-    tiles[pos.first][pos.second]->item->label->setGeometry(pos.second * TILESIZE, pos.first * TILESIZE, TILESIZE, TILESIZE);
-    QPixmap minePixmap = tiles[pos.first][pos.second]->item->getPixmap();
-    tiles[pos.first][pos.second]->item->label->setPixmap(minePixmap);
-    tiles[pos.first][pos.second]->item->label->show();
-    tiles[pos.first][pos.second]->item->label->raise();
+    tiles[pos.first][pos.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    updateItemLabel(pos);
 }
 
 void Map::itemToHub(int part1, int part2, int part3, int part4){
@@ -590,6 +614,22 @@ void Map::itemToHub(int part1, int part2, int part3, int part4){
     }else if(questionLever == 2){
         if(part1==SQUARE && part2==EMPTY && part3==SQUARE && part4==EMPTY){
             current++;
+        }
+    }
+}
+
+void Map::clearMap()
+{
+    miners.clear();
+    clearBlueprint();
+
+    for (int x = 0; x < tiles.size(); ++x) {
+        for (int y = 0; y < tiles[x].size(); ++y) {
+            delete tiles[x][y];
+            tiles[x][y] = new Tile();
+            tiles[x][y]->label = new QLabel(this);
+            tiles[x][y]->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+            updateTileLabel(x, y);
         }
     }
 }
@@ -773,9 +813,273 @@ std::pair<std::pair<int,int>,std::pair<int,int>> Map::cutterOutPox(int x, int y,
 
 void Map::mouseMoveEvent(QMouseEvent *event)
 {
-    if (draggingImageLabel) {
-        QPoint imageCenterOffset(draggingImageLabel->width() / 2, draggingImageLabel->height() / 2);
-        draggingImageLabel->move(event->pos() - imageCenterOffset);
-    }
+    updateBlueprintCursor(event->pos());
     QWidget::mouseMoveEvent(event);
+}
+
+void Map::paintEvent(QPaintEvent *event)
+{
+    Q_UNUSED(event);
+
+    QPainter painter(this);
+    painter.fillRect(rect(), QColor("#ECEEF2"));
+
+    const int tileSize = tilePixelSize();
+    QPen pen(QColor("#E3E7EA"));
+    pen.setWidth(1);
+    painter.setPen(pen);
+
+    for (int row = 0; row <= height; ++row) {
+        const int y = row * tileSize;
+        painter.drawLine(0, y, width * tileSize, y);
+    }
+
+    for (int column = 0; column <= width; ++column) {
+        const int x = column * tileSize;
+        painter.drawLine(x, 0, x, height * tileSize);
+    }
+}
+
+void Map::setZoomFactor(double zoomFactor)
+{
+    currentZoomFactor = qBound(0.5, zoomFactor, 2.5);
+    updateLayout();
+}
+
+double Map::zoomFactor() const
+{
+    return currentZoomFactor;
+}
+
+int Map::tilePixelSize() const
+{
+    return qMax(20, qRound(TILESIZE * currentZoomFactor));
+}
+
+QPoint Map::gridPositionFromPoint(const QPoint &point) const
+{
+    const int tileSize = tilePixelSize();
+    return QPoint(point.y() / tileSize, point.x() / tileSize);
+}
+
+bool Map::canPlaceTile(int x, int y, const Tile &tile) const
+{
+    if (x < 0 || y < 0) {
+        return false;
+    }
+
+    if (x + tile.size.first > height || y + tile.size.second > width) {
+        return false;
+    }
+
+    if (tile.type == Tile::Type::Building && tile.name == "miner") {
+        return tiles[x][y]->type == Tile::Type::Resource;
+    }
+
+    for (int row = 0; row < tile.size.first; ++row) {
+        for (int column = 0; column < tile.size.second; ++column) {
+            if (tiles[x + row][y + column]->type != Tile::Type::Empty) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+void Map::setBlueprintTile(const Tile *tile)
+{
+    if (!tile) {
+        clearBlueprint();
+        return;
+    }
+
+    applyBlueprintPixmap(*tile);
+    updateBlueprintCursor(lastBlueprintCursorPos);
+    blueprintLabel->show();
+    blueprintLabel->raise();
+}
+
+void Map::clearBlueprint()
+{
+    blueprintLabel->hide();
+    blueprintLabel->clear();
+}
+
+void Map::updateBlueprintCursor(const QPoint &mapPos)
+{
+    lastBlueprintCursorPos = mapPos;
+
+    if (blueprintLabel->pixmap().isNull()) {
+        return;
+    }
+
+    const QPoint imageCenterOffset(blueprintLabel->width() / 2, blueprintLabel->height() / 2);
+    blueprintLabel->move(mapPos - imageCenterOffset);
+    blueprintLabel->raise();
+}
+
+void Map::updateLayout()
+{
+    setFixedSize(width * tilePixelSize(), height * tilePixelSize());
+
+    for (int x = 0; x < tiles.size(); ++x) {
+        for (int y = 0; y < tiles[x].size(); ++y) {
+            updateTileLabel(x, y);
+            if (tiles[x][y]->item != nullptr) {
+                updateItemLabel(std::make_pair(x, y));
+            }
+        }
+    }
+
+    updateHudGeometry();
+    questionLabel->raise();
+    countLabel->raise();
+    levelLabel->raise();
+    blueprintLabel->raise();
+    updateBlueprintCursor(lastBlueprintCursorPos);
+    update();
+}
+
+QSize Map::cellPixelSize(std::pair<int, int> cellSpan) const
+{
+    return QSize(cellSpan.second * tilePixelSize(), cellSpan.first * tilePixelSize());
+}
+
+QRect Map::tileGeometry(int x, int y, std::pair<int, int> cellSpan) const
+{
+    const QSize size = cellPixelSize(cellSpan);
+    return QRect(y * tilePixelSize(), x * tilePixelSize(), size.width(), size.height());
+}
+
+void Map::updateTileLabel(int x, int y)
+{
+    Tile *tile = tiles[x][y];
+    if (!tile || !tile->label) {
+        return;
+    }
+
+    tile->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+
+    if (tile->type == Tile::Type::Empty || tile->father != nullptr) {
+        tile->label->clear();
+        tile->label->hide();
+        return;
+    }
+
+    tile->label->setGeometry(tileGeometry(x, y, tile->size));
+    if (tile->type == Tile::Type::Belt && !tile->images.empty()) {
+        const int safeFrameIndex = qMin(frameIndex, tile->images.size() - 1);
+        tile->label->setPixmap(scaledPixmapForSize(tile->images[safeFrameIndex], cellPixelSize(tile->size)));
+    } else {
+        QPixmap displayPixmap = scaledPixmapForSize(tile->image, cellPixelSize(tile->size));
+        if (tile->name == "miner" && tile->mine != nullptr) {
+            QPixmap composite(cellPixelSize(tile->size));
+            composite.fill(Qt::transparent);
+            QPainter painter(&composite);
+            painter.drawPixmap(0, 0, scaledPixmapForSize(tile->mine->image, cellPixelSize(tile->size)));
+            painter.drawPixmap(0, 0, displayPixmap);
+            displayPixmap = composite;
+        }
+        tile->label->setPixmap(displayPixmap);
+    }
+    tile->label->show();
+    tile->label->raise();
+}
+
+void Map::updateItemLabel(const std::pair<int, int> &pos)
+{
+    Item *item = tiles[pos.first][pos.second]->item;
+    if (!item || !item->label) {
+        return;
+    }
+
+    item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    item->label->setGeometry(tileGeometry(pos.first, pos.second));
+    item->label->setPixmap(scaledPixmapForSize(item->getPixmap(), cellPixelSize()));
+    item->label->show();
+    item->label->raise();
+}
+
+void Map::updateHudGeometry()
+{
+    const int tileSize = tilePixelSize();
+    questionLabel->setGeometry(
+        hudAnchorColumn * tileSize - qRound(tileSize * 0.6),
+        hudAnchorRow * tileSize,
+        2 * tileSize,
+        2 * tileSize
+    );
+    countLabel->setGeometry(
+        hudAnchorColumn * tileSize + qRound(tileSize * 1.2),
+        hudAnchorRow * tileSize,
+        3 * tileSize,
+        2 * tileSize
+    );
+    levelLabel->setGeometry(
+        hudAnchorColumn * tileSize - qRound(tileSize * 0.3),
+        (hudAnchorRow - 1) * tileSize + qRound(tileSize * 0.3),
+        tileSize,
+        tileSize
+    );
+}
+
+QPixmap Map::scaledPixmapForSize(const QPixmap &pixmap, const QSize &targetSize) const
+{
+    if (pixmap.isNull() || targetSize.isEmpty()) {
+        return pixmap;
+    }
+
+    return pixmap.scaled(targetSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+}
+
+QPixmap Map::blueprintPixmapForTile(const Tile &tile) const
+{
+    QPixmap pixmap;
+    QString assetName = tile.name;
+
+    if (tile.type == Tile::Type::Belt) {
+        if (tile.state == "left") {
+            assetName = "belt_left";
+        } else if (tile.state == "right") {
+            assetName = "belt_right";
+        } else {
+            assetName = "belt_top";
+        }
+    }
+
+    if (!pixmap.load(QString(":/res/blueprints/%1.png").arg(assetName))) {
+        qWarning() << "Failed to load blueprint image:" << assetName;
+        return {};
+    }
+
+    QTransform transform;
+    int angle = 0;
+    switch (tile.direction) {
+    case NORTH:
+        angle = 0;
+        break;
+    case EAST:
+        angle = 90;
+        break;
+    case SOUTH:
+        angle = 180;
+        break;
+    case WEST:
+        angle = 270;
+        break;
+    default:
+        break;
+    }
+    transform.rotate(angle);
+
+    return pixmap.transformed(transform, Qt::SmoothTransformation);
+}
+
+void Map::applyBlueprintPixmap(const Tile &tile)
+{
+    const QPixmap pixmap = blueprintPixmapForTile(tile);
+    const QSize targetSize = cellPixelSize(tile.size);
+    blueprintLabel->setPixmap(scaledPixmapForSize(pixmap, targetSize));
+    blueprintLabel->resize(targetSize);
 }

@@ -1,0 +1,31 @@
+/build/
+/cmake-build-*/
+
+# Qt Creator user files
+*.pro.user
+*.pro.user.*
+CMakeLists.txt.user
+CMakeLists.txt.user.*
+
+# IDE settings
+.vscode/
+.idea/
+
+# Generated files
+*.autosave
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dll
+*.dylib
+*.exe
+
+# saves
+saves/
+auto_save/
+config.ini
+
+# Local documents
+类异形工厂游戏说明文档.pdf

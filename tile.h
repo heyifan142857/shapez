@@ -29,7 +29,7 @@ public:
     Tile(): type(Type::Empty), name(""), label(nullptr), direction(NORTH), size(std::make_pair(1,1)){}
     Tile(Type type, int direction, const QString& name, std::pair<int,int> size = std::make_pair(1,1));
     Tile(Type type, QString state, int direction);//Belt构造函数
-    Tile(Type type, QString name = "Hub");//Hub构造函数
+    Tile(Type type, QString name = "hub");//Hub构造函数
 
     void changeDirection();
     void changeState();

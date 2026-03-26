@@ -39,6 +39,24 @@ Tile::Tile(Type type, int direction, const QString& name, std::pair<int,int> siz
     transform.rotate(angle);
 
     switch (type) {
+    case Tile::Type::Hub:
+        if (this->size == std::make_pair(1, 1)) {
+            this->size = std::make_pair(4, 4);
+        }
+        if (!pixmap.load(":/res/buildings/hub.png")) {
+            qWarning() << "Failed to load image:" << ":/res/buildings/hub.png";
+            QPixmap wrongPixmap(TILESIZE, TILESIZE);
+            wrongPixmap.fill(Qt::white);
+            image = wrongPixmap;
+            break;
+        }
+        w = pixmap.width();
+        h = pixmap.height();
+        w = w / 192 * TILESIZE;
+        h = h / 192 * TILESIZE;
+        scaledpixmap = pixmap.scaled(w, h, Qt::KeepAspectRatio);
+        image = scaledpixmap;
+        break;
     case Tile::Type::Building:
         if (!pixmap.load(QString(":/res/buildings/%1.png").arg(name))) {
             qWarning() << "Failed to load image:" << QString(":/res/buildings/%1.png").arg(name);
@@ -230,6 +248,10 @@ Tile::~Tile(){
     if(item){
         delete item;
     }
+    if(mine){
+        delete mine;
+        mine = nullptr;
+    }
     sons.clear();
 }
 
@@ -244,5 +266,6 @@ Tile::Tile(const Tile& other) {
     size = other.size;
     father = nullptr;
     sons.clear();
-    mine = other.mine;
+    mine = other.mine ? new Tile(*other.mine) : nullptr;
+    item = other.item ? new Item(*other.item) : nullptr;
 }
