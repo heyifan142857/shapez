@@ -3,7 +3,6 @@
 #include <QMouseEvent>
 #include "map.h"
 #include "configmanager.h"
-#include "globalupgradedialog.h"
 #include "localization.h"
 
 namespace {
@@ -46,17 +45,26 @@ BuildingInfoEntry buildingInfoEntryForTile(const Tile &tile)
         return {
             "平衡器",
             "Balancer",
-            "把输入流平均分配，适合整理产线吞吐。",
-            "Splits incoming flow evenly to keep your production lines balanced."
+            "把两路输入平均分配到两路输出，适合整理产线吞吐。",
+            "Splits two input flows evenly across two outputs to keep your production lines balanced."
         };
     }
 
     if (tile.name == "underground_belt_entry") {
         return {
-            "地下传送带",
-            "Underground Belt",
-            "让物品从地下穿过拥挤区域，便于跨越其他线路。",
-            "Sends items underground so they can cross busy factory lines."
+            "地下传送带（入口）",
+            "Underground Belt (Entry)",
+            "让物品从地下穿过拥挤区域，最远传送4格。放置时若附近有出口会自动显示连接预览。",
+            "Sends items underground to cross busy areas. Max range: 4 tiles. Shows a preview line when a matching exit is nearby."
+        };
+    }
+
+    if (tile.name == "underground_belt_exit") {
+        return {
+            "地下传送带（出口）",
+            "Underground Belt (Exit)",
+            "接收来自入口的地下传输物品，并从前方输出。",
+            "Receives items sent underground from a matching entry and outputs them forward."
         };
     }
 
@@ -82,17 +90,17 @@ BuildingInfoEntry buildingInfoEntryForTile(const Tile &tile)
         return {
             "旋转器",
             "Rotator",
-            "将输入图形旋转后输出，用来调整拼装方向。",
-            "Rotates incoming shapes before output so you can align later processing."
+            "将输入图形顺时针旋转90°后输出，用来调整拼装方向。",
+            "Rotates incoming shapes 90° clockwise before output so you can align later processing."
         };
     }
 
     if (tile.name == "stacker") {
         return {
-            "堆叠器",
+            "合成器",
             "Stacker",
-            "把两路输入组合成堆叠图形，适合更高阶产物。",
-            "Combines two inputs into a stacked shape for more advanced recipes."
+            "将两路不重叠的图形合成为一个目标产物，是后期多矿物关卡的核心建筑。",
+            "Combines two non-overlapping shapes into one target item, making mixed-resource levels possible."
         };
     }
 
@@ -100,8 +108,8 @@ BuildingInfoEntry buildingInfoEntryForTile(const Tile &tile)
         return {
             "混合器",
             "Mixer",
-            "将多路输入整合到同一产线，便于后续加工。",
-            "Merges multiple inputs into one combined line for later processing."
+            "将多路输入整合到同一产线，便于后续加工。<br/><span style='color:red;'>⚠ 功能尚未实现</span>",
+            "Merges multiple inputs into one combined line for later processing.<br/><span style='color:red;'>⚠ Not yet implemented</span>"
         };
     }
 
@@ -109,8 +117,8 @@ BuildingInfoEntry buildingInfoEntryForTile(const Tile &tile)
         return {
             "染色器",
             "Painter",
-            "给输入图形上色，让产线能够制作彩色目标。",
-            "Applies color to incoming shapes so you can produce painted targets."
+            "给输入图形上色，让产线能够制作彩色目标。<br/><span style='color:red;'>⚠ 功能尚未实现</span>",
+            "Applies color to incoming shapes so you can produce painted targets.<br/><span style='color:red;'>⚠ Not yet implemented</span>"
         };
     }
 
@@ -408,140 +416,39 @@ void Map::moveSingleItem(int x,int y,QSet<std::pair<int, int>> &movedItems){
         return;
     }
     std::pair<int,int> newPos = nextPox(x,y,*tiles[x][y]);
-    //Tile nextTile = getTile(newPos);
-    if(!inMap(newPos) || tiles[newPos.first][newPos.second]->type == Tile::Type::Color || tiles[newPos.first][newPos.second]->type == Tile::Type::Empty || tiles[newPos.first][newPos.second]->type == Tile::Type::Resource){
+    if(!inMap(newPos)){
         return;
     }
-    // if(tiles[newPos.first][newPos.second]->father != nullptr && tiles[newPos.first][newPos.second]->type!=Tile::Type::Hub && tiles[newPos.first][newPos.second]->name != "cutter"){
-    //     return;
-    // }
-    if(tiles[newPos.first][newPos.second]->type == Tile::Type::Belt){
-        if(tiles[newPos.first][newPos.second]->item != nullptr){
-            return;
-        }
-        int realDirection = tiles[x][y]->direction;
-        if(tiles[x][y]->type == Tile::Type::Belt){
-            if(tiles[x][y]->state == "left"){
-                realDirection = (realDirection+3)%4;
-            }
-            if(tiles[x][y]->state == "right"){
-                realDirection = (realDirection+1)%4;
-            }
-        }
-        if(realDirection != tiles[newPos.first][newPos.second]->direction){
-            return;
-        }
-        Item *item = tiles[x][y]->item;
-        tiles[item->pos.first][item->pos.second]->item = nullptr;
-        item->pos = newPos;
-        tiles[newPos.first][newPos.second]->item = item;
-        updateItemLabel(newPos);
-        movedItems.insert({newPos.first,newPos.second});
-    }else if(tiles[newPos.first][newPos.second]->type == Tile::Type::Building){
-        if(tiles[newPos.first][newPos.second]->name == "cutter"){
-            if(tiles[newPos.first][newPos.second]->direction == NORTH || tiles[newPos.first][newPos.second]->direction == EAST){
-                if(tiles[newPos.first][newPos.second]->father!=nullptr){
-                    return;
-                }
-            }
-            if(tiles[newPos.first][newPos.second]->direction == SOUTH || tiles[newPos.first][newPos.second]->direction == WEST){
-                if(tiles[newPos.first][newPos.second]->father==nullptr){
-                    return;
-                }
-            }
-            int realDirection = tiles[x][y]->direction;
-            if(tiles[x][y]->type == Tile::Type::Belt){
-                if(tiles[x][y]->state == "left"){
-                    realDirection = (realDirection+3)%4;
-                }
-                if(tiles[x][y]->state == "right"){
-                    realDirection = (realDirection+1)%4;
-                }
-            }
-            if(realDirection != tiles[newPos.first][newPos.second]->direction){
-                return;
-            }else{
-                std::pair<std::pair<int,int>,std::pair<int,int>> outPos = cutterOutPox(newPos.first,newPos.second,*tiles[newPos.first][newPos.second]);
-                if(canEnter(tiles[newPos.first][newPos.second]->direction, outPos.first)&&canEnter(tiles[newPos.first][newPos.second]->direction, outPos.second)){
-                    int stragedy = 0;
-                    if(realDirection == WEST || realDirection == EAST){
-                        stragedy = 0;
-                    }else{
-                        stragedy = 1;
-                    }
-                    ConfigManager config;
-                    if(!config.getUpgradeStatus("cut")){
-                        if(!tiles[x][y]->item->isCuttable()){
-                            return;
-                        }
-                    }
+    Tile *targetTile = tiles[newPos.first][newPos.second];
+    if(targetTile->type == Tile::Type::Color || targetTile->type == Tile::Type::Empty || targetTile->type == Tile::Type::Resource){
+        return;
+    }
 
-                    std::pair<Item*,Item*> items = tiles[x][y]->item->cutItem(stragedy);
-                    if(realDirection == SOUTH || realDirection == WEST){
-                        std::swap(items.first,items.second);
-                    }
-                    std::pair<std::pair<int,int>,std::pair<int,int>> outItemPos = cutterOutPox(newPos.first,newPos.second,*tiles[newPos.first][newPos.second]);
+    int realDirection = tiles[x][y]->direction;
+    if(tiles[x][y]->state == "left"){
+        realDirection = (realDirection+3)%4;
+    }
+    if(tiles[x][y]->state == "right"){
+        realDirection = (realDirection+1)%4;
+    }
 
-                    if(tiles[outItemPos.first.first][outItemPos.first.second]->item!=nullptr || tiles[outItemPos.second.first][outItemPos.second.second]->item!=nullptr){
-                        return;
-                    }
+    Item *item = tiles[x][y]->item;
+    if(!item){
+        return;
+    }
 
-                    delete tiles[x][y]->item;
-                    tiles[x][y]->item = nullptr;
+    if(!tryInsertItemAt(QPoint(newPos.first, newPos.second), realDirection, item)){
+        return;
+    }
 
-                    tiles[outItemPos.first.first][outItemPos.first.second]->item = items.first;
-                    tiles[outItemPos.first.first][outItemPos.first.second]->item->pos = outItemPos.first;
-                    tiles[outItemPos.first.first][outItemPos.first.second]->item->label = new QLabel(this);
-                    tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-                    updateItemLabel(outItemPos.first);
-
-                    tiles[outItemPos.second.first][outItemPos.second.second]->item = items.second;
-                    tiles[outItemPos.second.first][outItemPos.second.second]->item->pos = outItemPos.second;
-                    tiles[outItemPos.second.first][outItemPos.second.second]->item->label = new QLabel(this);
-                    tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-                    updateItemLabel(outItemPos.second);
-                    movedItems.insert({outItemPos.first.first,outItemPos.first.second});
-                    movedItems.insert({outItemPos.second.first,outItemPos.second.second});
-                }else{
-                    return;
-                }
-            }
-            //todo
-        }else{
-            Item *tempItem = tiles[x][y]->item;
-            tiles[x][y]->item = nullptr;
-            delete tempItem;
-        }
-    }else if(tiles[newPos.first][newPos.second]->type == Tile::Type::Hub){
-        Item *tempItem = tiles[x][y]->item;
-        itemToHub(tempItem->part1,tempItem->part2,tempItem->part3,tempItem->part4);
-        tiles[x][y]->item = nullptr;
-        delete tempItem;
-        //todo
+    tiles[x][y]->item = nullptr;
+    if(targetTile->type == Tile::Type::Belt){
+        movedItems.insert({newPos.first, newPos.second});
     }
 }
 
 bool Map::canEnter(int direction, std::pair<int,int> pos){
-    if(!inMap(pos) || tiles[pos.first][pos.second]->type == Tile::Type::Color || tiles[pos.first][pos.second]->type == Tile::Type::Empty || tiles[pos.first][pos.second]->type == Tile::Type::Resource){
-        return false;
-    }
-    if(tiles[pos.first][pos.second]->type == Tile::Type::Belt && direction != tiles[pos.first][pos.second]->direction && !(tiles[pos.first][pos.second]->type==Tile::Type::Hub)){
-        return false;
-    }
-    if(tiles[pos.first][pos.second]->type==Tile::Type::Building){
-        if(tiles[pos.first][pos.second]->name == "cutter"){
-            if(direction != tiles[pos.first][pos.second]->direction && !(tiles[pos.first][pos.second]->type==Tile::Type::Hub)){
-                return false;
-            }
-            if(tiles[pos.first][pos.second]->father != nullptr){
-                return false;
-            }
-        }
-    }
-    if(tiles[pos.first][pos.second]->item != nullptr){
-        return false;
-    }
-    return true;
+    return canInsertItemAt(QPoint(pos.first, pos.second), direction);
 }
 
 void Map::updateAnimationFrame() {
@@ -573,70 +480,13 @@ void Map::performMining(){
                 std::pair<int,int> generatePos = nextPox(pos,*tiles[pos.first][pos.second]);
                 if(!inMap(generatePos)){
                     qDebug() << "miner out of map";
-                    return;
+                    continue;
                 }
-                if(tiles[generatePos.first][generatePos.second]->type == Tile::Type::Belt && tiles[generatePos.first][generatePos.second]->direction==tiles[pos.first][pos.second]->direction){
-                    if(tiles[generatePos.first][generatePos.second]->item == nullptr){
-                        QString minename = tiles[pos.first][pos.second]->mine->name;
-                        tiles[generatePos.first][generatePos.second]->item = new Item(minename,generatePos);
-                        tiles[generatePos.first][generatePos.second]->item->label = new QLabel(this);
-                        tiles[generatePos.first][generatePos.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-                        updateItemLabel(generatePos);
-                        //items.append();
-                        //tiles[generatePos.first][generatePos.second]->item->label->setAttribute(Qt::WA_AlwaysStackOnTop, true);;
-                    }
-                }
-                if(tiles[generatePos.first][generatePos.second]->type == Tile::Type::Building
-                    && tiles[generatePos.first][generatePos.second]->name == "cutter"){
-                    Tile *cutterTile = tiles[generatePos.first][generatePos.second];
-                    int realDirection = tiles[pos.first][pos.second]->direction;
 
-                    if(cutterTile->direction != realDirection){
-                        continue;
-                    }
-                    if((cutterTile->direction == NORTH || cutterTile->direction == EAST) && cutterTile->father != nullptr){
-                        continue;
-                    }
-                    if((cutterTile->direction == SOUTH || cutterTile->direction == WEST) && cutterTile->father == nullptr){
-                        continue;
-                    }
-
-                    std::pair<std::pair<int,int>,std::pair<int,int>> outPos = cutterOutPox(generatePos.first,generatePos.second,*cutterTile);
-                    if(!canEnter(cutterTile->direction, outPos.first) || !canEnter(cutterTile->direction, outPos.second)){
-                        continue;
-                    }
-                    if(tiles[outPos.first.first][outPos.first.second]->item != nullptr
-                        || tiles[outPos.second.first][outPos.second.second]->item != nullptr){
-                        continue;
-                    }
-
-                    QString minename = tiles[pos.first][pos.second]->mine->name;
-                    Item *minedItem = new Item(minename, generatePos);
-                    ConfigManager config;
-                    if(!config.getUpgradeStatus("cut") && !minedItem->isCuttable()){
-                        delete minedItem;
-                        continue;
-                    }
-
-                    int stragedy = (realDirection == WEST || realDirection == EAST) ? 0 : 1;
-                    std::pair<Item*,Item*> items = minedItem->cutItem(stragedy);
+                QString minename = tiles[pos.first][pos.second]->mine->name;
+                Item *minedItem = new Item(minename, generatePos);
+                if(!tryInsertItemAt(QPoint(generatePos.first, generatePos.second), tiles[pos.first][pos.second]->direction, minedItem)){
                     delete minedItem;
-
-                    if(realDirection == SOUTH || realDirection == WEST){
-                        std::swap(items.first,items.second);
-                    }
-
-                    tiles[outPos.first.first][outPos.first.second]->item = items.first;
-                    tiles[outPos.first.first][outPos.first.second]->item->pos = outPos.first;
-                    tiles[outPos.first.first][outPos.first.second]->item->label = new QLabel(this);
-                    tiles[outPos.first.first][outPos.first.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-                    updateItemLabel(outPos.first);
-
-                    tiles[outPos.second.first][outPos.second.second]->item = items.second;
-                    tiles[outPos.second.first][outPos.second.second]->item->pos = outPos.second;
-                    tiles[outPos.second.first][outPos.second.second]->item->label = new QLabel(this);
-                    tiles[outPos.second.first][outPos.second.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-                    updateItemLabel(outPos.second);
                 }
             }
         }
@@ -646,113 +496,189 @@ void Map::performMining(){
 void Map::cutterUpdate(){
     for (int x = 0; x < height; ++x) {
         for (int y = 0; y < width; ++y) {
-            if(tiles[x][y]->type == Tile::Type::Building && tiles[x][y]->name == "cutter" && tiles[x][y]->item != nullptr){
-                std::pair<int,int> newPos = nextPox(x,y,*tiles[x][y]);
-                //Tile nextTile = getTile(newPos);
-                if(!inMap(newPos) || tiles[newPos.first][newPos.second]->type == Tile::Type::Color || tiles[newPos.first][newPos.second]->type == Tile::Type::Empty || tiles[newPos.first][newPos.second]->type == Tile::Type::Resource){
-                    continue;
-                }
-                if(tiles[newPos.first][newPos.second]->father != nullptr && tiles[newPos.first][newPos.second]->type!=Tile::Type::Hub){
-                    continue;
-                }
-                if(tiles[newPos.first][newPos.second]->type == Tile::Type::Belt){
-                    if(tiles[newPos.first][newPos.second]->item != nullptr){
+            Tile *tile = tiles[x][y];
+            if(tile->type != Tile::Type::Building || tile->father != nullptr || tile->name != "cutter" || tile->item == nullptr){
+                continue;
+            }
+
+            std::pair<std::pair<int,int>,std::pair<int,int>> outPositions = cutterOutPox(x, y, *tile);
+            const QPoint firstOut(outPositions.first.first, outPositions.first.second);
+            const QPoint secondOut(outPositions.second.first, outPositions.second.second);
+            if(!canInsertItemAt(firstOut, tile->direction) || !canInsertItemAt(secondOut, tile->direction)){
+                continue;
+            }
+
+            const QPoint firstRoot = rootCellForCell(firstOut);
+            const QPoint secondRoot = rootCellForCell(secondOut);
+            if(firstRoot == secondRoot && inMap(firstRoot.x(), firstRoot.y())){
+                Tile *sharedRoot = tiles[firstRoot.x()][firstRoot.y()];
+                if(sharedRoot->type == Tile::Type::Building){
+                    if(sharedRoot->name != "stacker"){
                         continue;
                     }
-                    int realDirection = tiles[x][y]->direction;
-                    if(tiles[x][y]->type == Tile::Type::Belt){
-                        if(tiles[x][y]->state == "left"){
-                            realDirection = (realDirection+3)%4;
-                        }
-                        if(tiles[x][y]->state == "right"){
-                            realDirection = (realDirection+1)%4;
-                        }
-                    }
-                    if(realDirection != tiles[newPos.first][newPos.second]->direction){
+                    const int freeSlots = (sharedRoot->item == nullptr ? 1 : 0) + (sharedRoot->secondaryItem == nullptr ? 1 : 0);
+                    if(freeSlots < 2){
                         continue;
                     }
-                    Item *item = tiles[x][y]->item;
-                    tiles[item->pos.first][item->pos.second]->item = nullptr;
-                    item->pos = newPos;
-                    tiles[newPos.first][newPos.second]->item = item;
-                    updateItemLabel(newPos);
-                }else if(tiles[newPos.first][newPos.second]->type == Tile::Type::Building){
-                    if(tiles[newPos.first][newPos.second]->name == "cutter"){
-                        int realDirection = tiles[x][y]->direction;
-                        if(tiles[x][y]->type == Tile::Type::Belt){
-                            if(tiles[x][y]->state == "left"){
-                                realDirection = (realDirection+3)%4;
-                            }
-                            if(tiles[x][y]->state == "right"){
-                                realDirection = (realDirection+1)%4;
-                            }
-                        }
-                        if(realDirection != tiles[newPos.first][newPos.second]->direction){
-                            continue;
-                        }else{
-                            std::pair<std::pair<int,int>,std::pair<int,int>> outPos = cutterOutPox(newPos.first,newPos.second,*tiles[newPos.first][newPos.second]);
-                            if(canEnter(tiles[newPos.first][newPos.second]->direction, outPos.first)&&canEnter(tiles[newPos.first][newPos.second]->direction, outPos.second)){
-                                int stragedy = 0;
-                                if(tiles[x][y]->direction == WEST || tiles[x][y]->direction == EAST){
-                                    stragedy = 0;
-                                }else{
-                                    stragedy = 1;
-                                }
-                                if(!tiles[x][y]->item->isCuttable()){
-                                    continue;
-                                }
-                                std::pair<Item*,Item*> items = tiles[x][y]->item->cutItem(stragedy);
-                                if(tiles[x][y]->direction == SOUTH || tiles[x][y]->direction == WEST){
-                                    std::swap(items.first,items.second);
-                                }
-                                std::pair<std::pair<int,int>,std::pair<int,int>> outItemPos = cutterOutPox(x,y,*tiles[x][y]);
+                }
+            }
 
-                                if(tiles[outItemPos.first.first][outItemPos.first.second]->item!=nullptr || tiles[outItemPos.second.first][outItemPos.second.second]->item!=nullptr){
-                                    continue;
-                                }
+            int strategy = (tile->direction == WEST || tile->direction == EAST) ? 0 : 1;
+            if(!tile->item->isCuttable()){
+                continue;
+            }
 
-                                delete tiles[x][y]->item;
-                                tiles[x][y]->item = nullptr;
+            std::pair<Item*,Item*> items = tile->item->cutItem(strategy);
+            if(tile->direction == SOUTH || tile->direction == WEST){
+                std::swap(items.first, items.second);
+            }
 
-                                tiles[outItemPos.first.first][outItemPos.first.second]->item = items.first;
-                                tiles[outItemPos.first.first][outItemPos.first.second]->item->pos = outItemPos.first;
-                                tiles[outItemPos.first.first][outItemPos.first.second]->item->label = new QLabel(this);
-                                tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-                                updateItemLabel(outItemPos.first);
-
-                                tiles[outItemPos.second.first][outItemPos.second.second]->item = items.second;
-                                tiles[outItemPos.second.first][outItemPos.second.second]->item->pos = outItemPos.second;
-                                tiles[outItemPos.second.first][outItemPos.second.second]->item->label = new QLabel(this);
-                                tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-                                updateItemLabel(outItemPos.second);
-                            }else{
-                                continue;
-                            }
-                        }
-                        //todo
-                    }else{
-                        Item *tempItem = tiles[x][y]->item;
-                        tiles[x][y]->item = nullptr;
-                        delete tempItem;
-                    }
-                }else if(tiles[newPos.first][newPos.second]->type == Tile::Type::Hub){
-                    Item *tempItem = tiles[x][y]->item;
-                    itemToHub(tempItem->part1,tempItem->part2,tempItem->part3,tempItem->part4);
-                    tiles[x][y]->item = nullptr;
-                    delete tempItem;
-                    //todo
+            const bool firstInserted = tryInsertItemAt(firstOut, tile->direction, items.first);
+            const bool secondInserted = tryInsertItemAt(secondOut, tile->direction, items.second);
+            if(firstInserted && secondInserted){
+                delete tile->item;
+                tile->item = nullptr;
+            }else{
+                if(!firstInserted){
+                    delete items.first;
+                }
+                if(!secondInserted){
+                    delete items.second;
                 }
             }
         }
     }
 }
 
+void Map::rotaterUpdate(){
+    for (int x = 0; x < height; ++x) {
+        for (int y = 0; y < width; ++y) {
+            Tile *tile = tiles[x][y];
+            if(tile->type != Tile::Type::Building || tile->father != nullptr || tile->name != "rotater" || tile->item == nullptr){
+                continue;
+            }
+
+            const QPoint outPos(nextPox(x, y, *tile).first, nextPox(x, y, *tile).second);
+            Item *rotated = tile->item->rotateItem();
+            if(tryInsertItemAt(outPos, tile->direction, rotated)){
+                delete tile->item;
+                tile->item = nullptr;
+            }else{
+                delete rotated;
+            }
+        }
+    }
+}
+
+void Map::balancerUpdate(){
+    for (int x = 0; x < height; ++x) {
+        for (int y = 0; y < width; ++y) {
+            Tile *tile = tiles[x][y];
+            if(tile->type != Tile::Type::Building || tile->father != nullptr || tile->name != "balancer" || tile->item == nullptr){
+                continue;
+            }
+
+            const QPoint root(x, y);
+            const QPoint primary = primaryCellForWideBuilding(root, *tile);
+            const QPoint alternate = alternateCellForWideBuilding(root, *tile);
+            const QPoint output1(nextPox(primary.x(), primary.y(), *tile).first, nextPox(primary.x(), primary.y(), *tile).second);
+            const QPoint output2(nextPox(alternate.x(), alternate.y(), *tile).first, nextPox(alternate.x(), alternate.y(), *tile).second);
+            const bool preferFirst = (tile->state != "1");
+            const QPoint preferred = preferFirst ? output1 : output2;
+            const QPoint fallback = preferFirst ? output2 : output1;
+
+            if(tryInsertItemAt(preferred, tile->direction, tile->item)){
+                tile->item = nullptr;
+                tile->state = preferFirst ? "1" : "0";
+            }else if(tryInsertItemAt(fallback, tile->direction, tile->item)){
+                tile->item = nullptr;
+            }
+        }
+    }
+}
+
+void Map::stackerUpdate(){
+    for (int x = 0; x < height; ++x) {
+        for (int y = 0; y < width; ++y) {
+            Tile *tile = tiles[x][y];
+            if(tile->type != Tile::Type::Building || tile->father != nullptr || tile->name != "stacker"){
+                continue;
+            }
+            if(tile->item == nullptr || tile->secondaryItem == nullptr){
+                continue;
+            }
+            if(!tile->item->ableToConbine(*tile->secondaryItem)){
+                continue;
+            }
+
+            Item *combined = new Item(*tile->item + *tile->secondaryItem);
+            const QPoint root(x, y);
+            const QPoint primary = primaryCellForWideBuilding(root, *tile);
+            const QPoint outPos(nextPox(primary.x(), primary.y(), *tile).first, nextPox(primary.x(), primary.y(), *tile).second);
+            if(tryInsertItemAt(outPos, tile->direction, combined)){
+                delete tile->item;
+                delete tile->secondaryItem;
+                tile->item = nullptr;
+                tile->secondaryItem = nullptr;
+            }else{
+                delete combined;
+            }
+        }
+    }
+}
+
+void Map::undergroundBeltUpdate(){
+    for (int x = 0; x < height; ++x) {
+        for (int y = 0; y < width; ++y) {
+            Tile* tile = tiles[x][y];
+            if(tile->type != Tile::Type::Building || tile->father != nullptr || tile->name != "underground_belt_exit" || tile->item == nullptr){
+                continue;
+            }
+
+            const QPoint outPos(nextPox(x, y, *tile).first, nextPox(x, y, *tile).second);
+            if(tryInsertItemAt(outPos, tile->direction, tile->item)){
+                tile->item = nullptr;
+            }
+        }
+    }
+
+    for (int x = 0; x < height; ++x) {
+        for (int y = 0; y < width; ++y) {
+            Tile* tile = tiles[x][y];
+            if(tile->type != Tile::Type::Building || tile->father != nullptr || tile->name != "underground_belt_entry" || tile->item == nullptr){
+                continue;
+            }
+
+            QPoint searchPos(x, y);
+            for(int step = 1; step <= 4; ++step){
+                std::pair<int,int> nextPos = nextPox(searchPos.x(), searchPos.y(), *tile);
+                searchPos = QPoint(nextPos.first, nextPos.second);
+                if(!inMap(searchPos.x(), searchPos.y())){
+                    break;
+                }
+
+                Tile *candidate = tiles[searchPos.x()][searchPos.y()];
+                if(candidate->type == Tile::Type::Building &&
+                   candidate->name == "underground_belt_exit" &&
+                   candidate->direction == tile->direction &&
+                   candidate->item == nullptr){
+                    candidate->item = tile->item;
+                    tile->item = nullptr;
+                    setBufferedItemPosition(candidate->item, searchPos);
+                    break;
+                }
+            }
+        }
+    }
+}
 
 void Map::setItem(std::pair<int,int> pos, Item *item){
     tiles[pos.first][pos.second]->item = item;
-    tiles[pos.first][pos.second]->item->label = new QLabel(this);
-    tiles[pos.first][pos.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-    updateItemLabel(pos);
+    setBufferedItemPosition(item, QPoint(pos.first, pos.second));
+}
+
+void Map::setGoalShape(const std::array<int, 4> &parts){
+    goalShape = parts;
 }
 
 void Map::itemToHub(int part1, int part2, int part3, int part4){
@@ -760,36 +686,26 @@ void Map::itemToHub(int part1, int part2, int part3, int part4){
     QVector<int> parts = {part1,part2,part3,part4};
     for(int part:parts){
         if(part == EMPTY){
-            coins+=3;
+            coins+=0;
         }
         if(part == SQUARE){
-            coins+=2;
+            coins+=1;
         }
         if(part == CIRCLE){
             coins+=1;
         }
         if(part == DIAMOND){
-            coins+=3;
+            coins+=1;
         }
     }
     ConfigManager config;
-    if(config.getUpgradeStatus("mine")){
-        coins *= 2;
-    }
     config.addGold(coins);
 
-    if(questionLever == 0){
-        if(part1==CIRCLE && part2==CIRCLE && part3==CIRCLE && part4==CIRCLE){
-            current++;
-        }
-    }else if(questionLever == 1){
-        if(part1==SQUARE && part2==SQUARE && part3==SQUARE && part4==SQUARE){
-            current++;
-        }
-    }else if(questionLever == 2){
-        if(part1==SQUARE && part2==EMPTY && part3==SQUARE && part4==EMPTY){
-            current++;
-        }
+    if(part1 == goalShape[0] &&
+       part2 == goalShape[1] &&
+       part3 == goalShape[2] &&
+       part4 == goalShape[3]){
+        current++;
     }
 }
 
@@ -938,53 +854,19 @@ std::pair<std::pair<int,int>,std::pair<int,int>> Map::cutterOutPox(std::pair<int
         qDebug() << "not cutter";
         return std::make_pair(pos,pos);
     }
-    std::pair<int,int> pos1 = nextPox(pos,cutterTile);
-    std::pair<int,int> pos2 = pos1;
-    switch (cutterTile.direction) {
-    case NORTH:
-        pos2.second++;
-        break;
-    case EAST:
-        pos2.first++;
-        break;
-    case SOUTH:
-        pos2.second--;
-        break;
-    case WEST:
-        pos2.first--;
-        break;
-    default:
-        break;
-    }
-    return std::make_pair(pos1,pos2);
+    const QPoint root(pos.first, pos.second);
+    const QPoint secondary = secondaryCellForRoot(root, cutterTile);
+    const QPoint primary = primaryCellForWideBuilding(root, cutterTile);
+    const QPoint alternate = (primary == root) ? secondary : root;
+
+    return std::make_pair(
+        nextPox(std::make_pair(primary.x(), primary.y()), cutterTile),
+        nextPox(std::make_pair(alternate.x(), alternate.y()), cutterTile));
 }
 
 std::pair<std::pair<int,int>,std::pair<int,int>> Map::cutterOutPox(int x, int y,Tile &cutterTile){
     std::pair<int,int> pos = std::make_pair(x,y);
-
-    // if(tiles[pos.first][pos.second]->type != Tile::Type::Building || tiles[pos.first][pos.second]->name != "cutter"){
-    //     qDebug() << "not cutter";
-    //     return std::make_pair(pos,pos);
-    // }
-    std::pair<int,int> pos1 = nextPox(pos,cutterTile);
-    std::pair<int,int> pos2 = pos1;
-    switch (cutterTile.direction) {
-    case NORTH:
-        pos2.second++;
-        break;
-    case EAST:
-        pos2.first++;
-        break;
-    case SOUTH:
-        pos2.second--;
-        break;
-    case WEST:
-        pos2.first--;
-        break;
-    default:
-        break;
-    }
-    return std::make_pair(pos1,pos2);
+    return cutterOutPox(pos, cutterTile);
 }
 
 void Map::mouseMoveEvent(QMouseEvent *event)
@@ -1020,6 +902,20 @@ void Map::paintEvent(QPaintEvent *event)
     for (int column = 0; column <= width; ++column) {
         const int x = column * tileSize;
         painter.drawLine(x, 0, x, height * tileSize);
+    }
+
+    // Draw underground belt connection preview line
+    if (undergroundPreviewStart.x() >= 0 && undergroundPreviewEnd.x() >= 0) {
+        const int half = tileSize / 2;
+        QPoint startPx(undergroundPreviewStart.y() * tileSize + half,
+                       undergroundPreviewStart.x() * tileSize + half);
+        QPoint endPx(undergroundPreviewEnd.y() * tileSize + half,
+                     undergroundPreviewEnd.x() * tileSize + half);
+        QPen dashPen(QColor(236, 238, 242));
+        dashPen.setWidth(3);
+        dashPen.setStyle(Qt::DashLine);
+        painter.setPen(dashPen);
+        painter.drawLine(startPx, endPx);
     }
 }
 
@@ -1172,6 +1068,11 @@ void Map::updateTileLabel(int x, int y)
     }
     tile->label->show();
     tile->label->raise();
+
+    // Keep buffered items visually inside buildings instead of floating above them.
+    if (tile->type == Tile::Type::Building && tile->item && tile->item->label) {
+        tile->item->label->stackUnder(tile->label);
+    }
 }
 
 void Map::updateItemLabel(const std::pair<int, int> &pos)
@@ -1185,7 +1086,13 @@ void Map::updateItemLabel(const std::pair<int, int> &pos)
     item->label->setGeometry(tileGeometry(pos.first, pos.second));
     item->label->setPixmap(scaledPixmapForSize(item->getPixmap(), cellPixelSize()));
     item->label->show();
-    item->label->raise();
+
+    Tile *tile = tiles[pos.first][pos.second];
+    if (tile->type == Tile::Type::Building && tile->label) {
+        item->label->stackUnder(tile->label);
+    } else {
+        item->label->raise();
+    }
 }
 
 void Map::updateHudGeometry()
@@ -1323,6 +1230,169 @@ QPoint Map::rootCellForCell(const QPoint &cell) const
     return cell;
 }
 
+QPoint Map::secondaryCellForRoot(const QPoint &root, const Tile &tile) const
+{
+    if (tile.size == std::make_pair(1, 1)) {
+        return root;
+    }
+
+    if (tile.direction == NORTH || tile.direction == SOUTH) {
+        return QPoint(root.x(), root.y() + 1);
+    }
+
+    return QPoint(root.x() + 1, root.y());
+}
+
+QPoint Map::primaryCellForWideBuilding(const QPoint &root, const Tile &tile) const
+{
+    if (tile.size == std::make_pair(1, 1)) {
+        return root;
+    }
+
+    return (tile.direction == NORTH || tile.direction == EAST)
+        ? root
+        : secondaryCellForRoot(root, tile);
+}
+
+QPoint Map::alternateCellForWideBuilding(const QPoint &root, const Tile &tile) const
+{
+    if (tile.size == std::make_pair(1, 1)) {
+        return root;
+    }
+
+    const QPoint primary = primaryCellForWideBuilding(root, tile);
+    return primary == root ? secondaryCellForRoot(root, tile) : root;
+}
+
+bool Map::isPrimaryInputCellForWideBuilding(const QPoint &destinationCell, const QPoint &root, const Tile &tile) const
+{
+    return destinationCell == primaryCellForWideBuilding(root, tile);
+}
+
+QPoint Map::primaryInputCellForSingleInputWideBuilding(const QPoint &root, const Tile &tile) const
+{
+    return primaryCellForWideBuilding(root, tile);
+}
+
+bool Map::canInsertItemAt(const QPoint &destinationCell, int direction) const
+{
+    if (!inMap(destinationCell.x(), destinationCell.y())) {
+        return false;
+    }
+
+    const Tile *tile = tiles[destinationCell.x()][destinationCell.y()];
+    if (tile->type == Tile::Type::Empty || tile->type == Tile::Type::Color || tile->type == Tile::Type::Resource) {
+        return false;
+    }
+
+    if (tile->type == Tile::Type::Belt) {
+        return tile->item == nullptr && tile->direction == direction;
+    }
+
+    if (tile->type == Tile::Type::Hub) {
+        return true;
+    }
+
+    const QPoint rootPos = rootCellForCell(destinationCell);
+    const Tile *rootTile = tiles[rootPos.x()][rootPos.y()];
+    const QPoint secondaryCell = secondaryCellForRoot(rootPos, *rootTile);
+
+    if (rootTile->name == "trash") {
+        return true;
+    }
+
+    if (direction != rootTile->direction) {
+        return false;
+    }
+
+    if (rootTile->name == "cutter") {
+        return rootTile->item == nullptr && destinationCell == primaryInputCellForSingleInputWideBuilding(rootPos, *rootTile);
+    }
+
+    if (rootTile->name == "rotater") {
+        return rootTile->item == nullptr && destinationCell == rootPos;
+    }
+
+    if (rootTile->name == "balancer") {
+        return rootTile->item == nullptr && (destinationCell == rootPos || destinationCell == secondaryCell);
+    }
+
+    if (rootTile->name == "underground_belt_entry") {
+        return rootTile->item == nullptr && destinationCell == rootPos;
+    }
+
+    if (rootTile->name == "stacker") {
+        if (destinationCell != rootPos && destinationCell != secondaryCell) {
+            return false;
+        }
+        return isPrimaryInputCellForWideBuilding(destinationCell, rootPos, *rootTile)
+            ? rootTile->item == nullptr
+            : rootTile->secondaryItem == nullptr;
+    }
+
+    return false;
+}
+
+bool Map::tryInsertItemAt(const QPoint &destinationCell, int direction, Item *item)
+{
+    if (!item || !canInsertItemAt(destinationCell, direction)) {
+        return false;
+    }
+
+    Tile *tile = tiles[destinationCell.x()][destinationCell.y()];
+    if (tile->type == Tile::Type::Belt) {
+        tile->item = item;
+        setBufferedItemPosition(item, destinationCell);
+        return true;
+    }
+
+    if (tile->type == Tile::Type::Hub) {
+        itemToHub(item->part1, item->part2, item->part3, item->part4);
+        delete item;
+        return true;
+    }
+
+    QPoint rootPos = rootCellForCell(destinationCell);
+    Tile *rootTile = tiles[rootPos.x()][rootPos.y()];
+
+    if (rootTile->name == "trash") {
+        delete item;
+        return true;
+    }
+
+    if (rootTile->name == "stacker") {
+        if (isPrimaryInputCellForWideBuilding(destinationCell, rootPos, *rootTile)) {
+            rootTile->item = item;
+            setBufferedItemPosition(item, rootPos);
+        } else {
+            rootTile->secondaryItem = item;
+            item->pos = std::make_pair(rootPos.x(), rootPos.y());
+            if (item->label) {
+                item->label->hide();
+            }
+        }
+        return true;
+    }
+
+    rootTile->item = item;
+    setBufferedItemPosition(item, rootPos);
+    return true;
+}
+
+void Map::setBufferedItemPosition(Item *item, const QPoint &cell)
+{
+    if (!item) {
+        return;
+    }
+
+    item->pos = std::make_pair(cell.x(), cell.y());
+    if (!item->label) {
+        item->label = new QLabel(this);
+        item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    }
+    updateItemLabel(item->pos);
+}
+
 QString Map::buildingInfoText(const Tile &tile) const
 {
     const BuildingInfoEntry entry = buildingInfoEntryForTile(tile);
@@ -1333,9 +1403,52 @@ QString Map::buildingInfoText(const Tile &tile) const
     ConfigManager config;
     const QString languageCode = config.getLanguage();
     const QString localizedName = Localization::text(languageCode, entry.zhName, entry.enName).toHtmlEscaped();
-    const QString localizedDescription = Localization::text(languageCode, entry.zhDescription, entry.enDescription).toHtmlEscaped();
+    const QString localizedDescription = Localization::text(languageCode, entry.zhDescription, entry.enDescription);
 
-    return QString("<b>%1</b><br/>%2").arg(localizedName, localizedDescription);
+    // Build speed info line
+    QString speedInfo;
+    if (tile.type == Tile::Type::Belt) {
+        double ips = 1000.0 / currentBeltIntervalMs;
+        speedInfo = Localization::text(languageCode,
+            QString("速度: %1 格/秒").arg(ips, 0, 'f', 2),
+            QString("Speed: %1 tiles/s").arg(ips, 0, 'f', 2));
+    } else if (tile.name == "balancer") {
+        double ips = 1000.0 / currentBalancerIntervalMs;
+        speedInfo = Localization::text(languageCode,
+            QString("速度: %1 项/秒").arg(ips, 0, 'f', 2),
+            QString("Speed: %1 items/s").arg(ips, 0, 'f', 2));
+    } else if (tile.name == "underground_belt_entry" || tile.name == "underground_belt_exit") {
+        double ips = 1000.0 / currentUndergroundIntervalMs;
+        speedInfo = Localization::text(languageCode,
+            QString("速度: %1 项/秒").arg(ips, 0, 'f', 2),
+            QString("Speed: %1 items/s").arg(ips, 0, 'f', 2));
+    } else if (tile.name == "miner") {
+        double ips = 1000.0 / currentMinerIntervalMs;
+        speedInfo = Localization::text(languageCode,
+            QString("产量: %1 个/秒").arg(ips, 0, 'f', 2),
+            QString("Output: %1 items/s").arg(ips, 0, 'f', 2));
+    } else if (tile.name == "cutter") {
+        double ips = 1000.0 / currentCutterIntervalMs;
+        speedInfo = Localization::text(languageCode,
+            QString("速度: %1 个/秒").arg(ips, 0, 'f', 2),
+            QString("Speed: %1 items/s").arg(ips, 0, 'f', 2));
+    } else if (tile.name == "rotater") {
+        double ips = 1000.0 / currentRotaterIntervalMs;
+        speedInfo = Localization::text(languageCode,
+            QString("速度: %1 个/秒").arg(ips, 0, 'f', 2),
+            QString("Speed: %1 items/s").arg(ips, 0, 'f', 2));
+    } else if (tile.name == "stacker") {
+        double ips = 1000.0 / currentStackerIntervalMs;
+        speedInfo = Localization::text(languageCode,
+            QString("速度: %1 个/秒").arg(ips, 0, 'f', 2),
+            QString("Speed: %1 items/s").arg(ips, 0, 'f', 2));
+    }
+
+    QString result = QString("<b>%1</b><br/>%2").arg(localizedName, localizedDescription);
+    if (!speedInfo.isEmpty()) {
+        result += QString("<br/><span style='color:#555;'>%1</span>").arg(speedInfo);
+    }
+    return result;
 }
 
 void Map::hideBuildingInfo()

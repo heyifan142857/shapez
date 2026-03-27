@@ -18,14 +18,52 @@
 #include <QWheelEvent>
 #include <QResizeEvent>
 #include <QCursor>
+#include <QHelpEvent>
+#include <QSet>
+#include <QToolTip>
+#include <algorithm>
 #include "configmanager.h"
-#include "globalupgradedialog.h"
 #include "localization.h"
 
 namespace {
 constexpr int kDefaultItemMoveTimerInterval = 800;
+constexpr int kDefaultBalancerTimerInterval = 860;
+constexpr int kDefaultUndergroundTimerInterval = 1200;
 constexpr int kDefaultMinerTimerInterval = 3200;
-constexpr int kDefaultCutterTimerInterval = 6400;
+constexpr int kDefaultCutterTimerInterval = 8000;
+constexpr int kDefaultRotaterTimerInterval = 1600;
+constexpr int kDefaultStackerTimerInterval = 2600;
+constexpr int kMaxUpgradeTier = 5;
+
+using GoalParts = std::array<int, 4>;
+
+double itemsPerSecondForInterval(int intervalMs)
+{
+    return 1000.0 / intervalMs;
+}
+
+GoalParts fullGoal(int type)
+{
+    return {type, type, type, type};
+}
+
+int distinctTypeCount(const GoalParts &goal)
+{
+    QSet<int> types;
+    for (int part : goal) {
+        if (part != EMPTY) {
+            types.insert(part);
+        }
+    }
+    return types.size();
+}
+
+void shuffleVector(QVector<int> &values, QRandomGenerator &generator)
+{
+    for (int index = values.size() - 1; index > 0; --index) {
+        values.swapItemsAt(index, generator.bounded(index + 1));
+    }
+}
 }
 
 class UpgradeDialog : public QDialog
@@ -33,41 +71,54 @@ class UpgradeDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit UpgradeDialog(const QString &languageCode, bool itemMoveUpgrate, bool minerUpgrate ,bool cutterUpgrate ,QWidget *parent = nullptr)
+    explicit UpgradeDialog(const QString &languageCode,
+                           int beltTier, int balancerTier, int undergroundTier,
+                           int minerTier, int cutterTier, int rotaterTier, int stackerTier,
+                           QWidget *parent = nullptr)
         : QDialog(parent), languageCode(languageCode)
     {
         setWindowTitle(text("选择升级", "Choose Upgrade"));
 
         QVBoxLayout *layout = new QVBoxLayout(this);
 
-        // 升级传送带
-        if(!itemMoveUpgrate){
-            QPushButton *upgradeButton1 = new QPushButton(text("升级传送带", "Upgrade Belts"), this);
-            connect(upgradeButton1, &QPushButton::clicked, this, [this]() {
-                selectedOption = 1;
-                accept();
-            });
-            layout->addWidget(upgradeButton1);
-        }
+        QLabel *hint = new QLabel(text("完成关卡！选择一项升级：", "Level complete! Choose an upgrade:"), this);
+        hint->setStyleSheet("font-weight: bold; margin-bottom: 4px;");
+        layout->addWidget(hint);
 
-        // 升级传送带
-        if(!minerUpgrate){
-            QPushButton *upgradeButton2 = new QPushButton(text("升级开采器", "Upgrade Miners"), this);
-            connect(upgradeButton2, &QPushButton::clicked, this, [this]() {
-                selectedOption = 2;
-                accept();
-            });
-            layout->addWidget(upgradeButton2);
-        }
+        auto addUpgradeButton = [this, layout](int optionId, int currentTier,
+                                               const QString &zhName, const QString &enName) {
+            if (currentTier >= kMaxUpgradeTier) {
+                return;
+            }
 
-        //升级切割机
-        if(!cutterUpgrate){
-            QPushButton *upgradeButton3 = new QPushButton(text("升级切割机", "Upgrade Cutters"), this);
-            connect(upgradeButton3, &QPushButton::clicked, this, [this]() {
-                selectedOption = 3;
+            QString label = text(
+                QString("%1 (Lv.%2 → Lv.%3)").arg(zhName).arg(currentTier).arg(currentTier + 1),
+                QString("%1 (Lv.%2 -> Lv.%3)").arg(enName).arg(currentTier).arg(currentTier + 1));
+            QPushButton *btn = new QPushButton(label, this);
+            connect(btn, &QPushButton::clicked, this, [this, optionId]() {
+                selectedOption = optionId;
                 accept();
             });
-            layout->addWidget(upgradeButton3);
+            layout->addWidget(btn);
+        };
+
+        addUpgradeButton(1, beltTier, "升级传送带", "Upgrade Belts");
+        addUpgradeButton(2, balancerTier, "升级平衡器", "Upgrade Balancers");
+        addUpgradeButton(3, undergroundTier, "升级地下传送带", "Upgrade Underground Belts");
+        addUpgradeButton(4, minerTier, "升级开采器", "Upgrade Miners");
+        addUpgradeButton(5, cutterTier, "升级切割机", "Upgrade Cutters");
+        addUpgradeButton(6, rotaterTier, "升级旋转器", "Upgrade Rotators");
+        addUpgradeButton(7, stackerTier, "升级合成器", "Upgrade Stackers");
+
+        if(beltTier >= kMaxUpgradeTier &&
+           balancerTier >= kMaxUpgradeTier &&
+           undergroundTier >= kMaxUpgradeTier &&
+           minerTier >= kMaxUpgradeTier &&
+           cutterTier >= kMaxUpgradeTier &&
+           rotaterTier >= kMaxUpgradeTier &&
+           stackerTier >= kMaxUpgradeTier){
+            QLabel *maxLabel = new QLabel(text("所有升级已达最高等级！", "All upgrades are at max level!"), this);
+            layout->addWidget(maxLabel);
         }
 
         setLayout(layout);
@@ -144,51 +195,58 @@ Gamescene::Gamescene(QWidget *parent)
     itemMoveTimer = new QTimer(this);
     connect(itemMoveTimer, &QTimer::timeout, this, [this]() {
         map->moveItems();
-        //qDebug() << "moving mining";
-        map->countLabel->setText(QString("%1\n/%2").arg(map->current).arg(map->target));
-        map->levelLabel->setText(QString("%1").arg(map->questionLever+1));
-        map->levelLabel->raise();
-        if(map->current >= map->target){
-            map->questionLever++;
-            setPuzzle();
-            UpgradeDialog dialog(languageCode, itemMoveUpgrate, minerUpgrate ,cutterUpgrate,this);
-            if (dialog.exec() == QDialog::Accepted) {
-                // 获取用户选择的选项
-                int selectedOption = dialog.getSelectedOption();
-                if (selectedOption == 1) {
-                    itemMoveUpgrate = true;
-                    itemMoveTimer->setInterval(itemMoveTimerIntervalUpgrate);
-                    QMessageBox::information(this, t("升级结果", "Upgrade Result"), t("你选择了升级传送带！", "You upgraded belts."));
-                } else if (selectedOption == 2) {
-                    minerUpgrate = true;
-                    minerTimer->setInterval(minerTimerIntervalUpgrate);
-                    QMessageBox::information(this, t("升级结果", "Upgrade Result"), t("你选择了升级开采器！", "You upgraded miners."));
-                } else if (selectedOption == 3){
-                    cutterUpgrate = true;
-                    cutterTimer->setInterval(cutterTimerIntervalUpgrate);
-                    QMessageBox::information(this, t("升级结果", "Upgrade Result"), t("你选择了升级切割机！", "You upgraded cutters."));
-                }else{
-                    QMessageBox::information(this, t("升级结果", "Upgrade Result"), t("未选择任何选项！", "No upgrade was selected."));
-                }
-            } else {
-                QMessageBox::information(this, t("升级结果", "Upgrade Result"), t("用户未选择升级选项！", "No upgrade was selected."));
-            }
-        }
+        refreshProgressLabels();
+        tryAdvanceLevel();
     });
     itemMoveTimer->start(kDefaultItemMoveTimerInterval);
+
+    balancerTimer = new QTimer(this);
+    connect(balancerTimer, &QTimer::timeout, this, [this]() {
+        map->balancerUpdate();
+        refreshProgressLabels();
+        tryAdvanceLevel();
+    });
+    balancerTimer->start(kDefaultBalancerTimerInterval);
+
+    undergroundTimer = new QTimer(this);
+    connect(undergroundTimer, &QTimer::timeout, this, [this]() {
+        map->undergroundBeltUpdate();
+        refreshProgressLabels();
+        tryAdvanceLevel();
+    });
+    undergroundTimer->start(kDefaultUndergroundTimerInterval);
 
     minerTimer = new QTimer(this);
     connect(minerTimer, &QTimer::timeout, this, [this]() {
         map->performMining();
-        //qDebug() << "perform mining";
+        refreshProgressLabels();
+        tryAdvanceLevel();
     });
     minerTimer->start(kDefaultMinerTimerInterval);
 
     cutterTimer = new QTimer(this);
     connect(cutterTimer, &QTimer::timeout, this, [this]() {
         map->cutterUpdate();
+        refreshProgressLabels();
+        tryAdvanceLevel();
     });
     cutterTimer->start(kDefaultCutterTimerInterval);
+
+    rotaterTimer = new QTimer(this);
+    connect(rotaterTimer, &QTimer::timeout, this, [this]() {
+        map->rotaterUpdate();
+        refreshProgressLabels();
+        tryAdvanceLevel();
+    });
+    rotaterTimer->start(kDefaultRotaterTimerInterval);
+
+    stackerTimer = new QTimer(this);
+    connect(stackerTimer, &QTimer::timeout, this, [this]() {
+        map->stackerUpdate();
+        refreshProgressLabels();
+        tryAdvanceLevel();
+    });
+    stackerTimer->start(kDefaultStackerTimerInterval);
 
     ui_clickEffect.setSource(QUrl("qrc:/res/sounds/ui_click.wav"));
     ui_clickEffect.setVolume(0.5f);
@@ -306,7 +364,7 @@ Gamescene::Gamescene(QWidget *parent)
 
     connect(underground_beltbtn, &QPushButton::clicked, this, [this]() {
         ui_clickEffect.play();
-        if(isPlaceItem && currentTile && currentTile->name == "underground_belt_entry"){
+        if(isPlaceItem && currentTile && (currentTile->name == "underground_belt_entry" || currentTile->name == "underground_belt_exit")){
             qDebug() << "cancel placing underground_belt";
             clearPlacementSelection();
         }else{
@@ -731,12 +789,18 @@ Gamescene::Gamescene(QWidget *parent)
         "}");
     upgratebtn->move(1425,15);
 
-    connect(upgratebtn, &QPushButton::clicked, this, [this](){
-        ConfigManager config;
-        GlobalUpgradeDialog dialog(config, this);
-        dialog.exec();
-        setFocus();
-    });
+    connect(upgratebtn, &QPushButton::clicked, this, &Gamescene::showUpgradeOverview);
+
+    const QVector<QPushButton *> tooltipButtons = {
+        beltbtn, balancerbtn, underground_beltbtn, minerbtn, cutterbtn,
+        rotaterbtn, stackerbtn, mixerbtn, painterbtn, trashbtn,
+        backbtn, savebtn, upgratebtn
+    };
+    for (QPushButton *button : tooltipButtons) {
+        button->setAttribute(Qt::WA_Hover, true);
+        button->setMouseTracking(true);
+        button->installEventFilter(this);
+    }
 
     //测试
     // Tile forwardBelt(Tile::Type::Belt, "forward", NORTH);
@@ -755,12 +819,146 @@ Gamescene::Gamescene(QWidget *parent)
     // map->setTile(17,0,forwardBelt);
     //map->deleteTile(2,20);
 
-    updateTexts();
+    applyTimerTiers();
+    refreshProgressLabels();
     updateInterfaceLayout();
 }
 
-void Gamescene::clearPlacementSelection()
+void Gamescene::applyTimerTiers()
 {
+    itemMoveTimer->setInterval(kBeltIntervals[qBound(0, itemMoveTier, kMaxUpgradeTier)]);
+    balancerTimer->setInterval(kBalancerIntervals[qBound(0, balancerTier, kMaxUpgradeTier)]);
+    undergroundTimer->setInterval(kUndergroundIntervals[qBound(0, undergroundTier, kMaxUpgradeTier)]);
+    minerTimer->setInterval(kMinerIntervals[qBound(0, minerTier, kMaxUpgradeTier)]);
+    cutterTimer->setInterval(kCutterIntervals[qBound(0, cutterTier, kMaxUpgradeTier)]);
+    rotaterTimer->setInterval(kRotaterIntervals[qBound(0, rotaterTier, kMaxUpgradeTier)]);
+    stackerTimer->setInterval(kStackerIntervals[qBound(0, stackerTier, kMaxUpgradeTier)]);
+    // Update speed display values in map
+    map->currentBeltIntervalMs   = itemMoveTimer->interval();
+    map->currentBalancerIntervalMs = balancerTimer->interval();
+    map->currentUndergroundIntervalMs = undergroundTimer->interval();
+    map->currentMinerIntervalMs  = minerTimer->interval();
+    map->currentCutterIntervalMs = cutterTimer->interval();
+    map->currentRotaterIntervalMs = rotaterTimer->interval();
+    map->currentStackerIntervalMs = stackerTimer->interval();
+    updateTexts();
+}
+
+void Gamescene::updateUndergroundBeltPreview(const QPoint &gridCell)
+{
+    if (!isPlaceItem || !currentTile) {
+        map->undergroundPreviewStart = QPoint(-1, -1);
+        map->undergroundPreviewEnd   = QPoint(-1, -1);
+        map->update();
+        return;
+    }
+    const QString name = currentTile->name;
+    if (name != "underground_belt_entry" && name != "underground_belt_exit") {
+        map->undergroundPreviewStart = QPoint(-1, -1);
+        map->undergroundPreviewEnd   = QPoint(-1, -1);
+        return;
+    }
+
+    Tile resolvedTile = resolvedUndergroundPlacementTile(gridCell, &map->undergroundPreviewStart, &map->undergroundPreviewEnd);
+    Q_UNUSED(resolvedTile);
+    map->update();
+}
+
+bool Gamescene::undergroundConnectionForDirection(const QPoint &gridCell, int direction, QString &resolvedName,
+                                                  QPoint &previewStart, QPoint &previewEnd) const
+{
+    int dr = 0;
+    int dc = 0;
+    switch (direction) {
+    case NORTH: dr = -1; break;
+    case EAST:  dc = +1; break;
+    case SOUTH: dr = +1; break;
+    case WEST:  dc = -1; break;
+    default: break;
+    }
+
+    for (int step = 1; step <= 4; ++step) {
+        const QPoint scanPos(gridCell.x() - dr * step, gridCell.y() - dc * step);
+        if (!map->inMap(scanPos.x(), scanPos.y())) {
+            break;
+        }
+        Tile *tile = map->tiles[scanPos.x()][scanPos.y()];
+        if (tile->name == "underground_belt_entry" && tile->direction == direction) {
+            resolvedName = "underground_belt_exit";
+            previewStart = scanPos;
+            previewEnd = gridCell;
+            return true;
+        }
+    }
+
+    for (int step = 1; step <= 4; ++step) {
+        const QPoint scanPos(gridCell.x() + dr * step, gridCell.y() + dc * step);
+        if (!map->inMap(scanPos.x(), scanPos.y())) {
+            break;
+        }
+        Tile *tile = map->tiles[scanPos.x()][scanPos.y()];
+        if (tile->name == "underground_belt_exit" && tile->direction == direction) {
+            resolvedName = "underground_belt_entry";
+            previewStart = gridCell;
+            previewEnd = scanPos;
+            return true;
+        }
+    }
+
+    previewStart = QPoint(-1, -1);
+    previewEnd = QPoint(-1, -1);
+    return false;
+}
+
+Tile Gamescene::resolvedUndergroundPlacementTile(const QPoint &gridCell, QPoint *previewStart, QPoint *previewEnd) const
+{
+    Tile resolved(Tile::Type::Building, currentTile ? currentTile->direction : NORTH, "underground_belt_entry");
+    if (!currentTile) {
+        if (previewStart) {
+            *previewStart = QPoint(-1, -1);
+        }
+        if (previewEnd) {
+            *previewEnd = QPoint(-1, -1);
+        }
+        return resolved;
+    }
+
+    QString resolvedName = "underground_belt_entry";
+    QPoint bestStart(-1, -1);
+    QPoint bestEnd(-1, -1);
+
+    QVector<int> directions{currentTile->direction, NORTH, EAST, SOUTH, WEST};
+    QSet<int> seenDirections;
+    for (int direction : directions) {
+        if (seenDirections.contains(direction)) {
+            continue;
+        }
+        seenDirections.insert(direction);
+        if (undergroundConnectionForDirection(gridCell, direction, resolvedName, bestStart, bestEnd)) {
+            resolved.direction = direction;
+            resolved.name = resolvedName;
+            if (previewStart) {
+                *previewStart = bestStart;
+            }
+            if (previewEnd) {
+                *previewEnd = bestEnd;
+            }
+            return resolved;
+        }
+    }
+
+    resolved.direction = currentTile->direction;
+    resolved.name = "underground_belt_entry";
+    if (previewStart) {
+        *previewStart = QPoint(-1, -1);
+    }
+    if (previewEnd) {
+        *previewEnd = QPoint(-1, -1);
+    }
+    return resolved;
+}
+
+void Gamescene::clearPlacementSelection(){
     isPlaceItem = false;
     map->releaseMouse();
     clearBeltDragPath();
@@ -769,6 +967,9 @@ void Gamescene::clearPlacementSelection()
         currentTile = nullptr;
     }
     map->clearBlueprint();
+    map->undergroundPreviewStart = QPoint(-1, -1);
+    map->undergroundPreviewEnd   = QPoint(-1, -1);
+    map->update();
 }
 
 void Gamescene::setPlacementTile(Tile *tile)
@@ -826,13 +1027,26 @@ void Gamescene::refreshPlacementPreview()
     if (isPlaceItem && currentTile) {
         const QPoint cursorPos = mapFromGlobal(QCursor::pos());
         if (mapViewportRect().contains(cursorPos)) {
-            map->setBlueprintTile(currentTile);
-            map->updateBlueprintCursor(map->mapFromGlobal(QCursor::pos()));
+            const QPoint mapCursorPos = map->mapFromGlobal(QCursor::pos());
+            if (currentTile->name == "underground_belt_entry" || currentTile->name == "underground_belt_exit") {
+                const QPoint gridCell = map->gridPositionFromPoint(mapCursorPos);
+                Tile resolvedTile = resolvedUndergroundPlacementTile(gridCell, &map->undergroundPreviewStart, &map->undergroundPreviewEnd);
+                map->setBlueprintTile(&resolvedTile);
+            } else {
+                map->undergroundPreviewStart = QPoint(-1, -1);
+                map->undergroundPreviewEnd   = QPoint(-1, -1);
+                map->setBlueprintTile(currentTile);
+            }
+            map->updateBlueprintCursor(mapCursorPos);
         } else {
             map->clearBlueprint();
+            map->undergroundPreviewStart = QPoint(-1, -1);
+            map->undergroundPreviewEnd   = QPoint(-1, -1);
         }
     } else {
         map->clearBlueprint();
+        map->undergroundPreviewStart = QPoint(-1, -1);
+        map->undergroundPreviewEnd   = QPoint(-1, -1);
     }
 }
 
@@ -907,21 +1121,104 @@ QString Gamescene::t(const QString &zhText, const QString &enText) const
     return Localization::text(languageCode, zhText, enText);
 }
 
+QString Gamescene::upgradeOverviewText() const
+{
+    return t(
+        QString(
+            "当前关卡升级一览：\n\n"
+            "传送带 Lv.%1：%2 格/秒\n"
+            "平衡器 Lv.%3：%4 项/秒\n"
+            "地下传送带 Lv.%5：%6 项/秒\n"
+            "开采器 Lv.%7：%8 项/秒\n"
+            "切割机 Lv.%9：%10 项/秒\n"
+            "旋转器 Lv.%11：%12 项/秒\n"
+            "合成器 Lv.%13：%14 项/秒\n\n"
+            "每完成一个关卡，只能选择一项升级，最高 Lv.%15。\n"
+            "同等级下传送带永远最快，平衡器只会略慢一点。")
+            .arg(itemMoveTier)
+            .arg(itemsPerSecondForInterval(itemMoveTimer->interval()), 0, 'f', 2)
+            .arg(balancerTier)
+            .arg(itemsPerSecondForInterval(balancerTimer->interval()), 0, 'f', 2)
+            .arg(undergroundTier)
+            .arg(itemsPerSecondForInterval(undergroundTimer->interval()), 0, 'f', 2)
+            .arg(minerTier)
+            .arg(itemsPerSecondForInterval(minerTimer->interval()), 0, 'f', 2)
+            .arg(cutterTier)
+            .arg(itemsPerSecondForInterval(cutterTimer->interval()), 0, 'f', 2)
+            .arg(rotaterTier)
+            .arg(itemsPerSecondForInterval(rotaterTimer->interval()), 0, 'f', 2)
+            .arg(stackerTier)
+            .arg(itemsPerSecondForInterval(stackerTimer->interval()), 0, 'f', 2)
+            .arg(kMaxUpgradeTier),
+        QString(
+            "Current level-up upgrades:\n\n"
+            "Belts Lv.%1: %2 tiles/s\n"
+            "Balancers Lv.%3: %4 items/s\n"
+            "Underground Belts Lv.%5: %6 items/s\n"
+            "Miners Lv.%7: %8 items/s\n"
+            "Cutters Lv.%9: %10 items/s\n"
+            "Rotators Lv.%11: %12 items/s\n"
+            "Stackers Lv.%13: %14 items/s\n\n"
+            "After each completed level, you choose exactly one upgrade, up to Lv.%15.\n"
+            "Belts are always the fastest at the same tier, with balancers only slightly behind.")
+            .arg(itemMoveTier)
+            .arg(itemsPerSecondForInterval(itemMoveTimer->interval()), 0, 'f', 2)
+            .arg(balancerTier)
+            .arg(itemsPerSecondForInterval(balancerTimer->interval()), 0, 'f', 2)
+            .arg(undergroundTier)
+            .arg(itemsPerSecondForInterval(undergroundTimer->interval()), 0, 'f', 2)
+            .arg(minerTier)
+            .arg(itemsPerSecondForInterval(minerTimer->interval()), 0, 'f', 2)
+            .arg(cutterTier)
+            .arg(itemsPerSecondForInterval(cutterTimer->interval()), 0, 'f', 2)
+            .arg(rotaterTier)
+            .arg(itemsPerSecondForInterval(rotaterTimer->interval()), 0, 'f', 2)
+            .arg(stackerTier)
+            .arg(itemsPerSecondForInterval(stackerTimer->interval()), 0, 'f', 2)
+            .arg(kMaxUpgradeTier));
+}
+
+void Gamescene::showUpgradeOverview()
+{
+    QMessageBox::information(this, t("升级概览", "Upgrade Overview"), upgradeOverviewText());
+    setFocus();
+}
+
 void Gamescene::updateTexts()
 {
-    beltbtn->setToolTip(t("传送带\n沿朝向运输物品，拖动铺设时可以自动形成转弯。", "Belt\nMoves items forward and can automatically form turns while dragging belts."));
-    balancerbtn->setToolTip(t("平衡器\n把输入流平均分配，适合整理产线吞吐。", "Balancer\nSplits incoming flow evenly to keep your production lines balanced."));
-    underground_beltbtn->setToolTip(t("地下传送带\n让物品从地下穿过拥挤区域，便于跨越其他线路。", "Underground Belt\nSends items underground so they can cross busy factory lines."));
-    minerbtn->setToolTip(t("开采器\n放在矿物上持续采集资源，并朝前方输出。", "Miner\nExtracts resources from ore tiles continuously and outputs them forward."));
-    cutterbtn->setToolTip(t("切割机\n把输入图形切成两部分，为更复杂的目标做准备。", "Cutter\nCuts incoming shapes into two parts for more advanced production goals."));
-    rotaterbtn->setToolTip(t("旋转器\n将输入图形旋转后输出，用来调整拼装方向。", "Rotator\nRotates incoming shapes before output so you can align later processing."));
-    stackerbtn->setToolTip(t("堆叠器\n把两路输入组合成堆叠图形，适合更高阶产物。", "Stacker\nCombines two inputs into a stacked shape for more advanced recipes."));
-    mixerbtn->setToolTip(t("混合器\n将多路输入整合到同一产线，便于后续加工。", "Mixer\nMerges multiple inputs into one combined line for later processing."));
-    painterbtn->setToolTip(t("染色器\n给输入图形上色，让产线能够制作彩色目标。", "Painter\nApplies color to incoming shapes so you can produce painted targets."));
-    trashbtn->setToolTip(t("垃圾桶\n销毁输入物品，用来清理多余或错误的产物。", "Trash\nDeletes incoming items so you can remove extra or incorrect outputs."));
+    beltbtn->setToolTip(t(
+        QString("传送带 (Lv.%1)\n沿朝向运输物品，拖动铺设时可以自动形成转弯。").arg(itemMoveTier),
+        QString("Belt (Lv.%1)\nMoves items forward and can automatically form turns while dragging belts.").arg(itemMoveTier)));
+    balancerbtn->setToolTip(t(
+        QString("平衡器 (Lv.%1)\n把两路输入平均分配到两路输出，速度只略慢于同级传送带。").arg(balancerTier),
+        QString("Balancer (Lv.%1)\nSplits two input flows evenly across two outputs and stays close to belt speed.").arg(balancerTier)));
+    underground_beltbtn->setToolTip(t(
+        QString("地下传送带 (Lv.%1)\n让物品从地下穿过拥挤区域，最远4格。放置时自动判断入口/出口。").arg(undergroundTier),
+        QString("Underground Belt (Lv.%1)\nSends items underground. Range: 4 tiles. Auto-detects entry/exit on placement.").arg(undergroundTier)));
+    minerbtn->setToolTip(t(
+        QString("开采器 (Lv.%1)\n放在矿物上持续采集资源，并朝前方输出。").arg(minerTier),
+        QString("Miner (Lv.%1)\nExtracts resources from ore tiles continuously and outputs them forward.").arg(minerTier)));
+    cutterbtn->setToolTip(t(
+        QString("切割机 (Lv.%1)\n把输入图形切成两部分，为更复杂的目标做准备。").arg(cutterTier),
+        QString("Cutter (Lv.%1)\nCuts incoming shapes into two parts for more advanced production goals.").arg(cutterTier)));
+    rotaterbtn->setToolTip(t(
+        QString("旋转器 (Lv.%1)\n将输入图形顺时针旋转90°后输出，用来调整拼装方向。").arg(rotaterTier),
+        QString("Rotator (Lv.%1)\nRotates incoming shapes 90° CW before output so you can align later processing.").arg(rotaterTier)));
+    stackerbtn->setToolTip(t(
+        QString("合成器 (Lv.%1)\n将两路不重叠的图形合成为一个目标，用来制作多矿物关卡。").arg(stackerTier),
+        QString("Stacker (Lv.%1)\nCombines two non-overlapping shapes into one item for mixed-resource goals.").arg(stackerTier)));
+    mixerbtn->setToolTip(t(
+        "混合器\n将多路输入整合到同一产线。⚠ 功能尚未实现",
+        "Mixer\nMerges multiple inputs into one combined line. ⚠ Not yet implemented"));
+    painterbtn->setToolTip(t(
+        "染色器\n给输入图形上色。⚠ 功能尚未实现",
+        "Painter\nApplies color to incoming shapes. ⚠ Not yet implemented"));
+    trashbtn->setToolTip(t(
+        "垃圾桶\n销毁输入物品，用来清理多余或错误的产物。",
+        "Trash\nDeletes incoming items so you can remove extra or incorrect outputs."));
     backbtn->setToolTip(t("返回主界面", "Back to Main Menu"));
     savebtn->setToolTip(t("保存游戏", "Save Game"));
-    upgratebtn->setToolTip(t("全局升级", "Global Upgrades"));
+    upgratebtn->setToolTip(t("升级概览", "Upgrade Overview"));
 }
 
 int Gamescene::directionForStep(const QPoint &from, const QPoint &to) const
@@ -1083,12 +1380,23 @@ bool Gamescene::handleMapMousePress(QMouseEvent *event)
             return true;
         }
 
-        if (!map->canPlaceTile(gridX, gridY, *currentTile)) {
+        Tile resolvedPlacement = *currentTile;
+        if (currentTile->name == "underground_belt_entry" || currentTile->name == "underground_belt_exit") {
+            resolvedPlacement = resolvedUndergroundPlacementTile(QPoint(gridX, gridY));
+        }
+
+        if (!map->canPlaceTile(gridX, gridY, resolvedPlacement)) {
             qDebug() << "pos(" << gridX << "," << gridY << ") cannot place selected tile";
             return true;
         }
 
-        map->setTile(gridX, gridY, *currentTile);
+        if (currentTile->name == "underground_belt_entry" || currentTile->name == "underground_belt_exit") {
+            map->setTile(gridX, gridY, resolvedPlacement);
+            clearPlacementSelection();
+            return true;
+        }
+
+        map->setTile(gridX, gridY, resolvedPlacement);
         clearPlacementSelection();
         return true;
     }
@@ -1118,10 +1426,21 @@ bool Gamescene::handleMapMouseMove(QMouseEvent *event)
     }
 
     if (isPlaceItem && currentTile) {
-        map->setBlueprintTile(currentTile);
-        map->updateBlueprintCursor(event->position().toPoint());
+        const QPoint mapPos = event->position().toPoint();
+        if (currentTile->name == "underground_belt_entry" || currentTile->name == "underground_belt_exit") {
+            const QPoint gridCell = map->gridPositionFromPoint(mapPos);
+            Tile resolvedTile = resolvedUndergroundPlacementTile(gridCell, &map->undergroundPreviewStart, &map->undergroundPreviewEnd);
+            map->setBlueprintTile(&resolvedTile);
+        } else {
+            map->undergroundPreviewStart = QPoint(-1, -1);
+            map->undergroundPreviewEnd   = QPoint(-1, -1);
+            map->setBlueprintTile(currentTile);
+        }
+        map->updateBlueprintCursor(mapPos);
     } else {
         map->clearBlueprint();
+        map->undergroundPreviewStart = QPoint(-1, -1);
+        map->undergroundPreviewEnd   = QPoint(-1, -1);
     }
 
     if (!isPanning) {
@@ -1289,39 +1608,180 @@ void Gamescene::updateInterfaceLayout()
     update();
 }
 
-void Gamescene::setPuzzle(){
-    map->current = 0;
-    const int puzzlePixmapSize = 2 * map->tilePixelSize();
-    if(map->questionLever == 0){
-        map->questionLabel->show();
-        map->countLabel->show();
-        map->levelLabel->show();
-        map->target = 20;
-        QPixmap level_1 = Item().drawPixmap(CIRCLE,CIRCLE,CIRCLE,CIRCLE,puzzlePixmapSize);
-        //QPixmap level_1 = Item().drawCircle();
-        map->questionLabel->setPixmap(level_1);
-    }else if(map->questionLever == 1){
-        map->questionLabel->show();
-        map->countLabel->show();
-        map->levelLabel->show();
-        map->target = 30;
-        QPixmap level_2 = Item().drawPixmap(SQUARE,SQUARE,SQUARE,SQUARE,puzzlePixmapSize);
-        map->questionLabel->setPixmap(level_2);
-    }else if(map->questionLever == 2){
-        map->questionLabel->show();
-        map->countLabel->show();
-        map->levelLabel->show();
-        map->target = 50;
-        QPixmap level_3 = Item().drawPixmap(SQUARE,EMPTY,SQUARE,EMPTY,puzzlePixmapSize);
-        map->questionLabel->setPixmap(level_3);
-    }else{
-        map->questionLabel->clear();
-        map->countLabel->hide();
-        map->levelLabel->hide();
+std::array<int, 4> Gamescene::generatedGoalForLevel(int levelIndex) const
+{
+    if (levelIndex == 0) {
+        return fullGoal(CIRCLE);
     }
+    if (levelIndex == 1) {
+        return fullGoal(SQUARE);
+    }
+    if (levelIndex == 2) {
+        return {SQUARE, EMPTY, SQUARE, EMPTY};
+    }
+
+    QRandomGenerator generator(0x5EED1234u + static_cast<quint32>(levelIndex * 2654435761u));
+    QVector<int> palette = {CIRCLE, SQUARE, DIAMOND};
+    shuffleVector(palette, generator);
+
+    const int usableTypes = qMin(1 + (levelIndex - 2) / 3, 3);
+    const int filledQuadrants = qMin(2 + (levelIndex - 3) / 2, 4);
+    GoalParts goal = {EMPTY, EMPTY, EMPTY, EMPTY};
+
+    QVector<int> quadrants = {0, 1, 2, 3};
+    shuffleVector(quadrants, generator);
+
+    const int guaranteedTypes = qMin(usableTypes, filledQuadrants);
+    for (int index = 0; index < filledQuadrants; ++index) {
+        const int paletteIndex = index < guaranteedTypes
+            ? index
+            : generator.bounded(usableTypes);
+        goal[quadrants[index]] = palette[paletteIndex];
+    }
+
+    if (levelIndex >= 6 && distinctTypeCount(goal) < qMin(usableTypes, 2)) {
+        for (int quadrant : quadrants) {
+            if (goal[quadrant] != EMPTY) {
+                goal[quadrant] = palette[qMin(1, usableTypes - 1)];
+                break;
+            }
+        }
+    }
+
+    return goal;
+}
+
+void Gamescene::refreshProgressLabels()
+{
+    map->countLabel->setText(QString("%1\n/%2").arg(map->current).arg(map->target));
+    map->levelLabel->setText(QString("%1").arg(map->questionLever + 1));
     map->questionLabel->raise();
     map->countLabel->raise();
     map->levelLabel->raise();
+}
+
+void Gamescene::tryAdvanceLevel()
+{
+    if (map->current < map->target) {
+        return;
+    }
+
+    const QVector<QTimer *> simulationTimers = {
+        itemMoveTimer,
+        balancerTimer,
+        undergroundTimer,
+        minerTimer,
+        cutterTimer,
+        rotaterTimer,
+        stackerTimer
+    };
+    for (QTimer *timer : simulationTimers) {
+        timer->stop();
+    }
+
+    map->questionLever++;
+    setPuzzle();
+
+    UpgradeDialog dialog(languageCode,
+                         itemMoveTier, balancerTier, undergroundTier,
+                         minerTier, cutterTier, rotaterTier, stackerTier,
+                         this);
+    if (dialog.exec() != QDialog::Accepted) {
+        QMessageBox::information(this, t("升级结果", "Upgrade Result"), t("用户未选择升级选项！", "No upgrade was selected."));
+        applyTimerTiers();
+        for (QTimer *timer : simulationTimers) {
+            timer->start(timer->interval());
+        }
+        refreshProgressLabels();
+        return;
+    }
+
+    const int selectedOption = dialog.getSelectedOption();
+    QString message;
+    switch (selectedOption) {
+    case 1:
+        if (itemMoveTier < kMaxUpgradeTier) {
+            itemMoveTier++;
+            message = t(QString("传送带升级到 Lv.%1！").arg(itemMoveTier),
+                        QString("Belts upgraded to Lv.%1!").arg(itemMoveTier));
+        }
+        break;
+    case 2:
+        if (balancerTier < kMaxUpgradeTier) {
+            balancerTier++;
+            message = t(QString("平衡器升级到 Lv.%1！").arg(balancerTier),
+                        QString("Balancers upgraded to Lv.%1!").arg(balancerTier));
+        }
+        break;
+    case 3:
+        if (undergroundTier < kMaxUpgradeTier) {
+            undergroundTier++;
+            message = t(QString("地下传送带升级到 Lv.%1！").arg(undergroundTier),
+                        QString("Underground belts upgraded to Lv.%1!").arg(undergroundTier));
+        }
+        break;
+    case 4:
+        if (minerTier < kMaxUpgradeTier) {
+            minerTier++;
+            message = t(QString("开采器升级到 Lv.%1！").arg(minerTier),
+                        QString("Miners upgraded to Lv.%1!").arg(minerTier));
+        }
+        break;
+    case 5:
+        if (cutterTier < kMaxUpgradeTier) {
+            cutterTier++;
+            message = t(QString("切割机升级到 Lv.%1！").arg(cutterTier),
+                        QString("Cutters upgraded to Lv.%1!").arg(cutterTier));
+        }
+        break;
+    case 6:
+        if (rotaterTier < kMaxUpgradeTier) {
+            rotaterTier++;
+            message = t(QString("旋转器升级到 Lv.%1！").arg(rotaterTier),
+                        QString("Rotaters upgraded to Lv.%1!").arg(rotaterTier));
+        }
+        break;
+    case 7:
+        if (stackerTier < kMaxUpgradeTier) {
+            stackerTier++;
+            message = t(QString("合成器升级到 Lv.%1！").arg(stackerTier),
+                        QString("Stackers upgraded to Lv.%1!").arg(stackerTier));
+        }
+        break;
+    default:
+        break;
+    }
+
+    applyTimerTiers();
+    if (message.isEmpty()) {
+        QMessageBox::information(this, t("升级结果", "Upgrade Result"), t("未选择任何选项！", "No upgrade was selected."));
+    } else {
+        QMessageBox::information(this, t("升级结果", "Upgrade Result"), message);
+    }
+    for (QTimer *timer : simulationTimers) {
+        timer->start(timer->interval());
+    }
+    refreshProgressLabels();
+}
+
+void Gamescene::setPuzzle(){
+    map->current = 0;
+    map->questionLabel->show();
+    map->countLabel->show();
+    map->levelLabel->show();
+    map->target = 20;
+    currentGoalParts = generatedGoalForLevel(map->questionLever);
+    map->setGoalShape(currentGoalParts);
+
+    const int puzzlePixmapSize = 2 * map->tilePixelSize();
+    QPixmap goalPixmap = Item().drawPixmap(
+        currentGoalParts[0],
+        currentGoalParts[1],
+        currentGoalParts[2],
+        currentGoalParts[3],
+        puzzlePixmapSize);
+    map->questionLabel->setPixmap(goalPixmap);
+    refreshProgressLabels();
 }
 
 bool Gamescene::eventFilter(QObject *watched, QEvent *event)
@@ -1341,6 +1801,14 @@ bool Gamescene::eventFilter(QObject *watched, QEvent *event)
         }
         default:
             break;
+        }
+    }
+
+    if (auto *button = qobject_cast<QPushButton *>(watched)) {
+        if (event->type() == QEvent::ToolTip && !button->toolTip().isEmpty()) {
+            auto *helpEvent = static_cast<QHelpEvent *>(event);
+            QToolTip::showText(helpEvent->globalPos(), button->toolTip(), button);
+            return true;
         }
     }
 
@@ -1366,6 +1834,11 @@ void Gamescene::keyPressEvent(QKeyEvent *event){
             currentTile->changeDirection();
             rememberDirectionForCurrentTile();
             refreshPlacementPreview();
+            // Update underground belt preview after rotation
+            if (currentTile->name == "underground_belt_entry" || currentTile->name == "underground_belt_exit") {
+                const QPoint gridCell = map->gridPositionFromPoint(map->mapFromGlobal(QCursor::pos()));
+                updateUndergroundBeltPreview(gridCell);
+            }
         }
         if (event->key() == Qt::Key_T) {
             qDebug() << "press T";
@@ -1442,15 +1915,23 @@ void Gamescene::saveGame(const QString& filename) {
     gameState["target"] = map->target;
 
     QJsonObject upgrades;
-    upgrades["itemMoveUpgrate"] = itemMoveUpgrate;
-    upgrades["minerUpgrate"] = minerUpgrate;
-    upgrades["cutterUpgrate"] = cutterUpgrate;
+    upgrades["itemMoveTier"] = itemMoveTier;
+    upgrades["balancerTier"] = balancerTier;
+    upgrades["undergroundTier"] = undergroundTier;
+    upgrades["minerTier"]    = minerTier;
+    upgrades["cutterTier"]   = cutterTier;
+    upgrades["rotaterTier"]  = rotaterTier;
+    upgrades["stackerTier"]  = stackerTier;
     gameState["upgrades"] = upgrades;
 
     QJsonObject timers;
-    timers["itemMoveTimerIntervalUpgrate"] = itemMoveTimerIntervalUpgrate;
-    timers["minerTimerIntervalUpgrate"] = minerTimerIntervalUpgrate;
-    timers["cutterTimerIntervalUpgrate"] = cutterTimerIntervalUpgrate;
+    timers["itemMoveInterval"] = itemMoveTimer->interval();
+    timers["balancerInterval"] = balancerTimer->interval();
+    timers["undergroundInterval"] = undergroundTimer->interval();
+    timers["minerInterval"]    = minerTimer->interval();
+    timers["cutterInterval"]   = cutterTimer->interval();
+    timers["rotaterInterval"]  = rotaterTimer->interval();
+    timers["stackerInterval"]  = stackerTimer->interval();
     gameState["timers"] = timers;
 
     QJsonArray mapTiles;
@@ -1488,6 +1969,20 @@ void Gamescene::saveGame(const QString& filename) {
 
                     tileObject["item"] = itemObject;
                 }
+                if (tile->secondaryItem) {
+                    QJsonObject itemObject;
+                    itemObject["part1"] = tile->secondaryItem->part1;
+                    itemObject["part2"] = tile->secondaryItem->part2;
+                    itemObject["part3"] = tile->secondaryItem->part3;
+                    itemObject["part4"] = tile->secondaryItem->part4;
+
+                    QJsonObject posObject;
+                    posObject["first"] = tile->secondaryItem->pos.first;
+                    posObject["second"] = tile->secondaryItem->pos.second;
+                    itemObject["pos"] = posObject;
+
+                    tileObject["secondaryItem"] = itemObject;
+                }
                 mapTiles.append(tileObject);
             }
         }
@@ -1519,18 +2014,15 @@ void Gamescene::loadGame(const QString& filename) {
     map->current = gameState["current"].toInt();
 
     QJsonObject upgrades = gameState["upgrades"].toObject();
-    itemMoveUpgrate = upgrades["itemMoveUpgrate"].toBool();
-    minerUpgrate = upgrades["minerUpgrate"].toBool();
-    cutterUpgrate = upgrades["cutterUpgrate"].toBool();
+    itemMoveTier = upgrades.contains("itemMoveTier") ? upgrades["itemMoveTier"].toInt() : (upgrades["itemMoveUpgrate"].toBool() ? 1 : 0);
+    balancerTier = upgrades.contains("balancerTier") ? upgrades["balancerTier"].toInt() : 0;
+    undergroundTier = upgrades.contains("undergroundTier") ? upgrades["undergroundTier"].toInt() : 0;
+    minerTier    = upgrades.contains("minerTier")    ? upgrades["minerTier"].toInt()    : (upgrades["minerUpgrate"].toBool()    ? 1 : 0);
+    cutterTier   = upgrades.contains("cutterTier")   ? upgrades["cutterTier"].toInt()   : (upgrades["cutterUpgrate"].toBool()   ? 1 : 0);
+    rotaterTier  = upgrades.contains("rotaterTier")  ? upgrades["rotaterTier"].toInt()  : 0;
+    stackerTier  = upgrades.contains("stackerTier")  ? upgrades["stackerTier"].toInt()  : 0;
 
-    QJsonObject timers = gameState["timers"].toObject();
-    itemMoveTimerIntervalUpgrate = timers["itemMoveTimerIntervalUpgrate"].toInt();
-    minerTimerIntervalUpgrate = timers["minerTimerIntervalUpgrate"].toInt();
-    cutterTimerIntervalUpgrate = timers["cutterTimerIntervalUpgrate"].toInt();
-
-    itemMoveTimer->setInterval(itemMoveUpgrate ? itemMoveTimerIntervalUpgrate : kDefaultItemMoveTimerInterval);
-    minerTimer->setInterval(minerUpgrate ? minerTimerIntervalUpgrate : kDefaultMinerTimerInterval);
-    cutterTimer->setInterval(cutterUpgrate ? cutterTimerIntervalUpgrate : kDefaultCutterTimerInterval);
+    applyTimerTiers();
 
     QJsonArray mapTiles = gameState["map"].toArray();
     for (const QJsonValue& tileValue : mapTiles) {
@@ -1590,7 +2082,21 @@ void Gamescene::loadGame(const QString& filename) {
                 QJsonObject posObject = itemObject["pos"].toObject();
                 item->pos = std::make_pair(posObject["first"].toInt(), posObject["second"].toInt());
 
-                    tile.item = item;
+                tile.item = item;
+            }
+            if (tileObject.contains("secondaryItem")) {
+                QJsonObject itemObject = tileObject["secondaryItem"].toObject();
+                Item* item = new Item(
+                    itemObject["part1"].toInt(),
+                    itemObject["part2"].toInt(),
+                    itemObject["part3"].toInt(),
+                    itemObject["part4"].toInt()
+                    );
+
+                QJsonObject posObject = itemObject["pos"].toObject();
+                item->pos = std::make_pair(posObject["first"].toInt(), posObject["second"].toInt());
+
+                tile.secondaryItem = item;
             }
             map->setTile(x, y, tile, false);
         }
@@ -1598,6 +2104,7 @@ void Gamescene::loadGame(const QString& filename) {
 
     file.close();
     map->updateLayout();
+    refreshProgressLabels();
     qDebug() << "Game loaded from:" << filename;
 }
 
@@ -1617,15 +2124,23 @@ void Gamescene::autoSaveGame(const QString& filename) {
     gameState["target"] = map->target;
 
     QJsonObject upgrades;
-    upgrades["itemMoveUpgrate"] = itemMoveUpgrate;
-    upgrades["minerUpgrate"] = minerUpgrate;
-    upgrades["cutterUpgrate"] = cutterUpgrate;
+    upgrades["itemMoveTier"] = itemMoveTier;
+    upgrades["balancerTier"] = balancerTier;
+    upgrades["undergroundTier"] = undergroundTier;
+    upgrades["minerTier"]    = minerTier;
+    upgrades["cutterTier"]   = cutterTier;
+    upgrades["rotaterTier"]  = rotaterTier;
+    upgrades["stackerTier"]  = stackerTier;
     gameState["upgrades"] = upgrades;
 
     QJsonObject timers;
-    timers["itemMoveTimerIntervalUpgrate"] = itemMoveTimerIntervalUpgrate;
-    timers["minerTimerIntervalUpgrate"] = minerTimerIntervalUpgrate;
-    timers["cutterTimerIntervalUpgrate"] = cutterTimerIntervalUpgrate;
+    timers["itemMoveInterval"] = itemMoveTimer->interval();
+    timers["balancerInterval"] = balancerTimer->interval();
+    timers["undergroundInterval"] = undergroundTimer->interval();
+    timers["minerInterval"]    = minerTimer->interval();
+    timers["cutterInterval"]   = cutterTimer->interval();
+    timers["rotaterInterval"]  = rotaterTimer->interval();
+    timers["stackerInterval"]  = stackerTimer->interval();
     gameState["timers"] = timers;
 
     QJsonArray mapTiles;
@@ -1662,6 +2177,20 @@ void Gamescene::autoSaveGame(const QString& filename) {
                     itemObject["pos"] = posObject;
 
                     tileObject["item"] = itemObject;
+                }
+                if (tile->secondaryItem) {
+                    QJsonObject itemObject;
+                    itemObject["part1"] = tile->secondaryItem->part1;
+                    itemObject["part2"] = tile->secondaryItem->part2;
+                    itemObject["part3"] = tile->secondaryItem->part3;
+                    itemObject["part4"] = tile->secondaryItem->part4;
+
+                    QJsonObject posObject;
+                    posObject["first"] = tile->secondaryItem->pos.first;
+                    posObject["second"] = tile->secondaryItem->pos.second;
+                    itemObject["pos"] = posObject;
+
+                    tileObject["secondaryItem"] = itemObject;
                 }
                 mapTiles.append(tileObject);
             }
@@ -1700,18 +2229,15 @@ void Gamescene::autoLoadGame(const QString& filename) {
         map->current = gameState["current"].toInt();
 
         QJsonObject upgrades = gameState["upgrades"].toObject();
-        itemMoveUpgrate = upgrades["itemMoveUpgrate"].toBool();
-        minerUpgrate = upgrades["minerUpgrate"].toBool();
-        cutterUpgrate = upgrades["cutterUpgrate"].toBool();
+        itemMoveTier = upgrades.contains("itemMoveTier") ? upgrades["itemMoveTier"].toInt() : (upgrades["itemMoveUpgrate"].toBool() ? 1 : 0);
+        balancerTier = upgrades.contains("balancerTier") ? upgrades["balancerTier"].toInt() : 0;
+        undergroundTier = upgrades.contains("undergroundTier") ? upgrades["undergroundTier"].toInt() : 0;
+        minerTier    = upgrades.contains("minerTier")    ? upgrades["minerTier"].toInt()    : (upgrades["minerUpgrate"].toBool()    ? 1 : 0);
+        cutterTier   = upgrades.contains("cutterTier")   ? upgrades["cutterTier"].toInt()   : (upgrades["cutterUpgrate"].toBool()   ? 1 : 0);
+        rotaterTier  = upgrades.contains("rotaterTier")  ? upgrades["rotaterTier"].toInt()  : 0;
+        stackerTier  = upgrades.contains("stackerTier")  ? upgrades["stackerTier"].toInt()  : 0;
 
-        QJsonObject timers = gameState["timers"].toObject();
-        itemMoveTimerIntervalUpgrate = timers["itemMoveTimerIntervalUpgrate"].toInt();
-        minerTimerIntervalUpgrate = timers["minerTimerIntervalUpgrate"].toInt();
-        cutterTimerIntervalUpgrate = timers["cutterTimerIntervalUpgrate"].toInt();
-
-        itemMoveTimer->setInterval(itemMoveUpgrate ? itemMoveTimerIntervalUpgrate : kDefaultItemMoveTimerInterval);
-        minerTimer->setInterval(minerUpgrate ? minerTimerIntervalUpgrate : kDefaultMinerTimerInterval);
-        cutterTimer->setInterval(cutterUpgrate ? cutterTimerIntervalUpgrate : kDefaultCutterTimerInterval);
+        applyTimerTiers();
 
         QJsonArray mapTiles = gameState["map"].toArray();
         for (const QJsonValue& tileValue : mapTiles) {
@@ -1773,12 +2299,27 @@ void Gamescene::autoLoadGame(const QString& filename) {
 
                     tile.item = item;
                 }
+                if (tileObject.contains("secondaryItem")) {
+                    QJsonObject itemObject = tileObject["secondaryItem"].toObject();
+                    Item* item = new Item(
+                        itemObject["part1"].toInt(),
+                        itemObject["part2"].toInt(),
+                        itemObject["part3"].toInt(),
+                        itemObject["part4"].toInt()
+                        );
+
+                    QJsonObject posObject = itemObject["pos"].toObject();
+                    item->pos = std::make_pair(posObject["first"].toInt(), posObject["second"].toInt());
+
+                    tile.secondaryItem = item;
+                }
                 map->setTile(x, y, tile, false);
             }
         }
 
         file.close();
         map->updateLayout();
+        refreshProgressLabels();
         qDebug() << "Game loaded from:" << loadPath;
     }
 }

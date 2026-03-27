@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+- Added level-based production goals that generate target shapes for each stage and require delivering matching items to advance.
+- Added a per-level upgrade selection flow with up to five tiers each for belts, balancers, underground belts, miners, cutters, rotators, and stackers.
+- Added dedicated update loops for balancers, underground belts, rotators, and stackers so these buildings now process items automatically during gameplay.
+- Added an in-game upgrade overview panel showing current tiers and effective throughput values for each upgradable building type.
+- Added tooltip tier labels and speed information for major logistics buildings to make current production performance visible in the UI.
+- Added underground belt connection preview rendering and auto entry/exit detection during placement.
+- Added support for stackers to buffer a secondary input item before combining shapes.
+
+### Changed
+- Reworked level completion handling so all simulation timers pause during upgrade selection and resume with updated speeds afterward.
+- Replaced the old persistent boolean upgrade system with numeric tier-based progression stored in save data, while keeping compatibility with older save fields.
+- Rebalanced default processing intervals so belts remain the fastest logistics layer and other buildings scale consistently with their upgrade tiers.
+- Updated hub delivery logic to score produced items by shape parts while only counting deliveries toward progress when they exactly match the current goal.
+- Expanded building insertion and routing rules so belts, balancers, cutters, underground belts, rotators, stackers, trash, and the hub share a common item handoff path.
+- Removed the standalone global upgrade dialog source files and folded upgrade flow/overview UI into `Gamescene`.
+- Updated `README.md` and the build target source list to reflect the removal of the old global upgrade dialog module.
+
+### Fixed
+- Fixed cutter, balancer, rotator, stacker, and underground belt outputs so they now respect destination availability and no longer drop items through inconsistent placement checks.
+- Fixed wide-building input and output routing by distinguishing root, primary, alternate, and secondary cells for multi-tile buildings.
+- Fixed underground belts so entries transfer items across up to four tiles into matching exits and exits forward buffered items normally.
+- Fixed stacked or buffered item rendering so items stay visually inside buildings instead of floating above building sprites.
+- Fixed item and tile copying/destruction for buildings with buffered secondary items to avoid leaks and stale pointers.
+
 ## 2.0.2 - 2026-03-27
 
 ### Fixed

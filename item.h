@@ -37,6 +37,8 @@ public:
 
     std::pair<Item*,Item*> cutItem(int stragedy);//stragedy = 0,横着切;stragedy = 1,竖着切
 
+    Item* rotateItem(); // 顺时针旋转90°
+
     bool ableToConbine(Item other);
 
     bool isCuttable();

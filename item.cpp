@@ -309,12 +309,22 @@ bool Item::isCuttable(){
     return cuttable;
 };
 
+// 顺时针旋转90°: TL->TR, TR->BR, BR->BL, BL->TL
+// part1=TL, part2=TR, part3=BL, part4=BR
+// new part1(TL) = old part3(BL)
+// new part2(TR) = old part1(TL)
+// new part3(BL) = old part4(BR)
+// new part4(BR) = old part2(TR)
+Item* Item::rotateItem() {
+    return new Item(part3, part1, part4, part2);
+}
+
 Item Item::operator+(const Item& other) const {
     Item result;
-    result.part1 = this->part1 + other.part1;
-    result.part2 = this->part2 + other.part2;
-    result.part3 = this->part3 + other.part3;
-    result.part4 = this->part4 + other.part4;
+    result.part1 = this->part1 != EMPTY ? this->part1 : other.part1;
+    result.part2 = this->part2 != EMPTY ? this->part2 : other.part2;
+    result.part3 = this->part3 != EMPTY ? this->part3 : other.part3;
+    result.part4 = this->part4 != EMPTY ? this->part4 : other.part4;
     return result;
 }
 

@@ -30,7 +30,6 @@ The game reproduces the core loop of placing structures and moving items on a gr
 - `tile.*`: tile definitions and behavior
 - `item.*`: item data and processing
 - `configmanager.*`: save/config state management
-- `globalupgradedialog.*`: upgrade dialog UI
 - `res/` and `images/`: game assets and screenshots
 
 ## How to Build
