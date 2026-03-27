@@ -219,7 +219,7 @@ Gamescene::Gamescene(QWidget *parent)
             clearPlacementSelection();
         }else{
             qDebug() << "placing belt";
-            setPlacementTile(new Tile(Tile::Type::Belt, "forward", defaultBeltDirection));
+            setPlacementTile(createPlacementTile(Tile::Type::Belt, "belt"));
         }
         setFocus();
     });
@@ -265,7 +265,7 @@ Gamescene::Gamescene(QWidget *parent)
             clearPlacementSelection();
         }else{
             qDebug() << "placing balancer";
-            setPlacementTile(new Tile(Tile::Type::Building, NORTH, "balancer",std::make_pair(1,2)));
+            setPlacementTile(createPlacementTile(Tile::Type::Building, "balancer", std::make_pair(1,2)));
         }
         setFocus();
     });
@@ -311,7 +311,7 @@ Gamescene::Gamescene(QWidget *parent)
             clearPlacementSelection();
         }else{
             qDebug() << "placing underground_belt";
-            setPlacementTile(new Tile(Tile::Type::Building, NORTH, "underground_belt_entry"));
+            setPlacementTile(createPlacementTile(Tile::Type::Building, "underground_belt_entry"));
         }
         setFocus();
     });
@@ -357,7 +357,7 @@ Gamescene::Gamescene(QWidget *parent)
             clearPlacementSelection();
         }else{
             qDebug() << "placing miner";
-            setPlacementTile(new Tile(Tile::Type::Building, NORTH, "miner"));
+            setPlacementTile(createPlacementTile(Tile::Type::Building, "miner"));
         }
         setFocus();
     });
@@ -403,7 +403,7 @@ Gamescene::Gamescene(QWidget *parent)
             clearPlacementSelection();
         }else{
             qDebug() << "placing cutter";
-            setPlacementTile(new Tile(Tile::Type::Building, NORTH, "cutter", std::make_pair(1,2)));
+            setPlacementTile(createPlacementTile(Tile::Type::Building, "cutter", std::make_pair(1,2)));
         }
         setFocus();
     });
@@ -449,7 +449,7 @@ Gamescene::Gamescene(QWidget *parent)
             clearPlacementSelection();
         }else{
             qDebug() << "placing rotater";
-            setPlacementTile(new Tile(Tile::Type::Building, NORTH, "rotater"));
+            setPlacementTile(createPlacementTile(Tile::Type::Building, "rotater"));
         }
         setFocus();
     });
@@ -495,7 +495,7 @@ Gamescene::Gamescene(QWidget *parent)
             clearPlacementSelection();
         }else{
             qDebug() << "placing stacker";
-            setPlacementTile(new Tile(Tile::Type::Building, NORTH, "stacker", std::make_pair(1,2)));
+            setPlacementTile(createPlacementTile(Tile::Type::Building, "stacker", std::make_pair(1,2)));
         }
         setFocus();
     });
@@ -541,7 +541,7 @@ Gamescene::Gamescene(QWidget *parent)
             clearPlacementSelection();
         }else{
             qDebug() << "placing mixer";
-            setPlacementTile(new Tile(Tile::Type::Building, NORTH, "mixer", std::make_pair(1,2)));
+            setPlacementTile(createPlacementTile(Tile::Type::Building, "mixer", std::make_pair(1,2)));
         }
         setFocus();
     });
@@ -587,7 +587,7 @@ Gamescene::Gamescene(QWidget *parent)
             clearPlacementSelection();
         }else{
             qDebug() << "placing painter";
-            setPlacementTile(new Tile(Tile::Type::Building, NORTH, "painter", std::make_pair(1,2)));
+            setPlacementTile(createPlacementTile(Tile::Type::Building, "painter", std::make_pair(1,2)));
         }
         setFocus();
     });
@@ -633,7 +633,7 @@ Gamescene::Gamescene(QWidget *parent)
             clearPlacementSelection();
         }else{
             qDebug() << "placing trash";
-            setPlacementTile(new Tile(Tile::Type::Building, NORTH, "trash"));
+            setPlacementTile(createPlacementTile(Tile::Type::Building, "trash"));
         }
         setFocus();
     });
@@ -781,6 +781,39 @@ void Gamescene::setPlacementTile(Tile *tile)
     currentTile = tile;
     isPlaceItem = currentTile != nullptr;
     refreshPlacementPreview();
+}
+
+Tile *Gamescene::createPlacementTile(Tile::Type type, const QString &name, std::pair<int, int> size) const
+{
+    const int direction = rememberedDirectionFor(name, type);
+    if (type == Tile::Type::Belt) {
+        return new Tile(Tile::Type::Belt, "forward", direction);
+    }
+
+    return new Tile(type, direction, name, size);
+}
+
+int Gamescene::rememberedDirectionFor(const QString &name, Tile::Type type) const
+{
+    if (type == Tile::Type::Belt) {
+        return defaultBeltDirection;
+    }
+
+    return rememberedBuildingDirections.value(name, NORTH);
+}
+
+void Gamescene::rememberDirectionForCurrentTile()
+{
+    if (!currentTile) {
+        return;
+    }
+
+    if (currentTile->type == Tile::Type::Belt) {
+        defaultBeltDirection = currentTile->direction;
+        return;
+    }
+
+    rememberedBuildingDirections[currentTile->name] = currentTile->direction;
 }
 
 void Gamescene::refreshPlacementPreview()
@@ -1331,9 +1364,7 @@ void Gamescene::keyPressEvent(QKeyEvent *event){
         if (event->key() == Qt::Key_R) {
             qDebug() << "press R";
             currentTile->changeDirection();
-            if(currentTile->type == Tile::Type::Belt){
-                defaultBeltDirection = (defaultBeltDirection+1)%4;
-            }
+            rememberDirectionForCurrentTile();
             refreshPlacementPreview();
         }
         if (event->key() == Qt::Key_T) {
