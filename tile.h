@@ -50,6 +50,7 @@ public:
     QVector<std::pair<int,int>> sons;
     Tile* mine = nullptr;//为miner准备的
     Item* item = nullptr;//显示矿物
+    Item* secondaryItem = nullptr;
 };
 
 #endif // TILE_H

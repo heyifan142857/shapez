@@ -18,10 +18,6 @@ public:
 
     void setGold(int gold);
 
-    bool getUpgradeStatus(const QString &upgradeName) const;
-
-    void setUpgradeStatus(const QString &upgradeName, bool status);
-
     QString getLanguage() const;
 
     void setLanguage(const QString &languageCode);

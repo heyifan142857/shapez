@@ -247,6 +247,11 @@ Tile::~Tile(){
     }
     if(item){
         delete item;
+        item = nullptr;
+    }
+    if(secondaryItem){
+        delete secondaryItem;
+        secondaryItem = nullptr;
     }
     if(mine){
         delete mine;
@@ -268,4 +273,5 @@ Tile::Tile(const Tile& other) {
     sons.clear();
     mine = other.mine ? new Tile(*other.mine) : nullptr;
     item = other.item ? new Item(*other.item) : nullptr;
+    secondaryItem = other.secondaryItem ? new Item(*other.secondaryItem) : nullptr;
 }

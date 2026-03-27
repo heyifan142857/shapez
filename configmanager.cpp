@@ -28,16 +28,6 @@ void ConfigManager::setGold(int gold)
     settings->setValue("Gold", gold);
 }
 
-bool ConfigManager::getUpgradeStatus(const QString &upgradeName) const
-{
-    return settings->value("Upgrades/" + upgradeName, false).toBool();
-}
-
-void ConfigManager::setUpgradeStatus(const QString &upgradeName, bool status)
-{
-    settings->setValue("Upgrades/" + upgradeName, status);
-}
-
 QString ConfigManager::getLanguage() const
 {
     return Localization::normalizeLanguageCode(settings->value("Language", "zh-CN").toString());

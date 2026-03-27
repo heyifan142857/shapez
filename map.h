@@ -17,6 +17,7 @@
 #include <QPoint>
 #include <QSize>
 #include <QEvent>
+#include <array>
 
 #include "tile.h"
 //#include "item.h"
@@ -48,12 +49,17 @@ public:
     void performMining();
 
     void cutterUpdate();
+    void rotaterUpdate();
+    void balancerUpdate();
+    void stackerUpdate();
+    void undergroundBeltUpdate();
 
     void mouseMoveEvent(QMouseEvent *event) override;
     void leaveEvent(QEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
 
     void setItem(std::pair<int,int> pos, Item *item);
+    void setGoalShape(const std::array<int, 4> &parts);
 
     void itemToHub(int part1, int part2, int part3, int part4);
     void clearMap();
@@ -85,6 +91,19 @@ public:
 
     QLabel *blueprintLabel;
 
+    // Current timer intervals for speed display in tooltips (set by Gamescene)
+    int currentBeltIntervalMs = 800;
+    int currentBalancerIntervalMs = 900;
+    int currentUndergroundIntervalMs = 1100;
+    int currentMinerIntervalMs = 3200;
+    int currentCutterIntervalMs = 8000;
+    int currentRotaterIntervalMs = 1500;
+    int currentStackerIntervalMs = 2600;
+
+    // Underground belt placement preview line (grid cell coords, -1,-1 = none)
+    QPoint undergroundPreviewStart = QPoint(-1, -1);
+    QPoint undergroundPreviewEnd   = QPoint(-1, -1);
+
     //int coins = 0;
 
     QVector<QVector<Tile*>> tiles;
@@ -107,6 +126,7 @@ private:
     int hudAnchorRow = 8;
     int hudAnchorColumn = 15;
     QLabel *buildingInfoLabel = nullptr;
+    std::array<int, 4> goalShape = {EMPTY, EMPTY, EMPTY, EMPTY};
 
     QSize cellPixelSize(std::pair<int, int> cellSpan = std::make_pair(1,1)) const;
     QRect tileGeometry(int x, int y, std::pair<int, int> cellSpan = std::make_pair(1,1)) const;
@@ -118,6 +138,14 @@ private:
     void showBuildingInfo();
     void updateBuildingInfoPosition(const QPoint &mapPos);
     QPoint rootCellForCell(const QPoint &cell) const;
+    QPoint secondaryCellForRoot(const QPoint &root, const Tile &tile) const;
+    QPoint primaryCellForWideBuilding(const QPoint &root, const Tile &tile) const;
+    QPoint alternateCellForWideBuilding(const QPoint &root, const Tile &tile) const;
+    bool isPrimaryInputCellForWideBuilding(const QPoint &destinationCell, const QPoint &root, const Tile &tile) const;
+    QPoint primaryInputCellForSingleInputWideBuilding(const QPoint &root, const Tile &tile) const;
+    bool canInsertItemAt(const QPoint &destinationCell, int direction) const;
+    bool tryInsertItemAt(const QPoint &destinationCell, int direction, Item *item);
+    void setBufferedItemPosition(Item *item, const QPoint &cell);
     QString buildingInfoText(const Tile &tile) const;
     QPixmap scaledPixmapForSize(const QPixmap &pixmap, const QSize &targetSize) const;
     QPixmap blueprintPixmapForTile(const Tile &tile) const;

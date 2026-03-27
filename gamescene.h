@@ -9,6 +9,7 @@
 #include <QSoundEffect>
 #include <QVector>
 #include <QHash>
+#include <array>
 #include "map.h"
 
 class Gamescene : public QWidget
@@ -67,6 +68,8 @@ private:
     void populateStartingResources();
     void placeRandomResourceCluster(const QString &resourceName, int rowMin, int rowMax, int colMin, int colMax);
     void updateTexts();
+    QString upgradeOverviewText() const;
+    void showUpgradeOverview();
     void beginBeltDrag(const QPoint &startCell);
     void updateBeltDragPath(const QPoint &targetCell);
     void rebuildBeltDragPath();
@@ -77,6 +80,9 @@ private:
     Tile *createPlacementTile(Tile::Type type, const QString &name, std::pair<int, int> size = std::make_pair(1,1)) const;
     int rememberedDirectionFor(const QString &name, Tile::Type type) const;
     void rememberDirectionForCurrentTile();
+    std::array<int, 4> generatedGoalForLevel(int levelIndex) const;
+    void refreshProgressLabels();
+    void tryAdvanceLevel();
 
     int defaultBeltDirection;
     QHash<QString, int> rememberedBuildingDirections;
@@ -109,16 +115,38 @@ private:
     QString languageCode = "zh-CN";
 
     QTimer* itemMoveTimer;
+    QTimer* balancerTimer;
+    QTimer* undergroundTimer;
     QTimer* minerTimer;
     QTimer* cutterTimer;
+    QTimer* rotaterTimer;
+    QTimer* stackerTimer;
 
-    int itemMoveTimerIntervalUpgrate = 400;
-    int minerTimerIntervalUpgrate = 1600;
-    int cutterTimerIntervalUpgrate = 3200;
+    // Tier-based upgrade system (0 = default)
+    int itemMoveTier = 0;
+    int balancerTier = 0;
+    int undergroundTier = 0;
+    int minerTier    = 0;
+    int cutterTier   = 0;
+    int rotaterTier  = 0;
+    int stackerTier  = 0;
+    std::array<int, 4> currentGoalParts = {EMPTY, EMPTY, EMPTY, EMPTY};
 
-    bool itemMoveUpgrate = false;
-    bool minerUpgrate = false;
-    bool cutterUpgrate = false;
+    // Timer intervals per tier
+    static constexpr int kBeltIntervals[6]       = {800, 640, 520, 420, 330, 250};
+    static constexpr int kBalancerIntervals[6]   = {860, 700, 560, 450, 350, 270};
+    static constexpr int kUndergroundIntervals[6]= {1200, 980, 800, 650, 520, 400};
+    static constexpr int kMinerIntervals[6]      = {3200, 2500, 1900, 1450, 1050, 750};
+    static constexpr int kCutterIntervals[6]     = {8000, 6200, 4800, 3600, 2700, 2000};
+    static constexpr int kRotaterIntervals[6]    = {1600, 1300, 1050, 850, 680, 520};
+    static constexpr int kStackerIntervals[6]    = {2600, 2100, 1700, 1360, 1080, 860};
+
+    void applyTimerTiers();
+    void updateUndergroundBeltPreview(const QPoint &gridCell);
+    bool undergroundConnectionForDirection(const QPoint &gridCell, int direction, QString &resolvedName,
+                                          QPoint &previewStart, QPoint &previewEnd) const;
+    Tile resolvedUndergroundPlacementTile(const QPoint &gridCell, QPoint *previewStart = nullptr,
+                                          QPoint *previewEnd = nullptr) const;
 
 signals:
     void returnToMain();
