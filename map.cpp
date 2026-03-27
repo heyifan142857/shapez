@@ -586,19 +586,58 @@ void Map::performMining(){
                         //tiles[generatePos.first][generatePos.second]->item->label->setAttribute(Qt::WA_AlwaysStackOnTop, true);;
                     }
                 }
-                // if(tiles[generatePos.first][generatePos.second]->type == Tile::Type::Building && tiles[generatePos.first][generatePos.second]->direction==tiles[pos.first][pos.second]->direction && tiles[generatePos.first][generatePos.second]->name == "cutter" && tiles[generatePos.first][generatePos.second]->father == nullptr){
-                //     if(tiles[generatePos.first][generatePos.second]->item == nullptr){
-                //         QString minename = tiles[pos.first][pos.second]->mine->name;
-                //         tiles[generatePos.first][generatePos.second]->item = new Item(minename,generatePos);
-                //         tiles[generatePos.first][generatePos.second]->item->label = new QLabel(this);
-                //         tiles[generatePos.first][generatePos.second]->item->label->setGeometry(generatePos.second * TILESIZE, generatePos.first * TILESIZE, TILESIZE, TILESIZE);
-                //         QPixmap minePixmap = tiles[generatePos.first][generatePos.second]->item->getPixmap();
-                //         tiles[generatePos.first][generatePos.second]->item->label->setPixmap(minePixmap);
-                //         tiles[generatePos.first][generatePos.second]->item->label->show();
-                //         tiles[generatePos.first][generatePos.second]->item->label->raise();
-                //         //tiles[generatePos.first][generatePos.second]->item->label->setAttribute(Qt::WA_AlwaysStackOnTop, true);;
-                //     }
-                // }
+                if(tiles[generatePos.first][generatePos.second]->type == Tile::Type::Building
+                    && tiles[generatePos.first][generatePos.second]->name == "cutter"){
+                    Tile *cutterTile = tiles[generatePos.first][generatePos.second];
+                    int realDirection = tiles[pos.first][pos.second]->direction;
+
+                    if(cutterTile->direction != realDirection){
+                        continue;
+                    }
+                    if((cutterTile->direction == NORTH || cutterTile->direction == EAST) && cutterTile->father != nullptr){
+                        continue;
+                    }
+                    if((cutterTile->direction == SOUTH || cutterTile->direction == WEST) && cutterTile->father == nullptr){
+                        continue;
+                    }
+
+                    std::pair<std::pair<int,int>,std::pair<int,int>> outPos = cutterOutPox(generatePos.first,generatePos.second,*cutterTile);
+                    if(!canEnter(cutterTile->direction, outPos.first) || !canEnter(cutterTile->direction, outPos.second)){
+                        continue;
+                    }
+                    if(tiles[outPos.first.first][outPos.first.second]->item != nullptr
+                        || tiles[outPos.second.first][outPos.second.second]->item != nullptr){
+                        continue;
+                    }
+
+                    QString minename = tiles[pos.first][pos.second]->mine->name;
+                    Item *minedItem = new Item(minename, generatePos);
+                    ConfigManager config;
+                    if(!config.getUpgradeStatus("cut") && !minedItem->isCuttable()){
+                        delete minedItem;
+                        continue;
+                    }
+
+                    int stragedy = (realDirection == WEST || realDirection == EAST) ? 0 : 1;
+                    std::pair<Item*,Item*> items = minedItem->cutItem(stragedy);
+                    delete minedItem;
+
+                    if(realDirection == SOUTH || realDirection == WEST){
+                        std::swap(items.first,items.second);
+                    }
+
+                    tiles[outPos.first.first][outPos.first.second]->item = items.first;
+                    tiles[outPos.first.first][outPos.first.second]->item->pos = outPos.first;
+                    tiles[outPos.first.first][outPos.first.second]->item->label = new QLabel(this);
+                    tiles[outPos.first.first][outPos.first.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+                    updateItemLabel(outPos.first);
+
+                    tiles[outPos.second.first][outPos.second.second]->item = items.second;
+                    tiles[outPos.second.first][outPos.second.second]->item->pos = outPos.second;
+                    tiles[outPos.second.first][outPos.second.second]->item->label = new QLabel(this);
+                    tiles[outPos.second.first][outPos.second.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+                    updateItemLabel(outPos.second);
+                }
             }
         }
     }
