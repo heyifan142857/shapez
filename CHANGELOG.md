@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 2.1.0 - 2026-03-27
 
 ### Added
 - Added level-based production goals that generate target shapes for each stage and require delivering matching items to advance.
