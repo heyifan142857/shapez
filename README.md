@@ -6,13 +6,23 @@ This project was created for an advanced programming course and focuses on build
 
 ## Overview
 
-The game reproduces the core loop of placing structures and moving items on a grid-based map. The current version mainly includes:
+The game reproduces the core loop of placing structures and moving items on a grid-based map. The current version already includes a broader factory gameplay loop with:
 
-- Belts
-- Miners
-- Cutters
-- Trash bins
-- Basic item transportation and interaction
+- Belts with drag placement, automatic turns, and remembered placement rotation
+- Miners for extracting square, circle, and diamond resources
+- Cutters for splitting shapes into valid halves
+- Balancers for distributing throughput across two outputs
+- Underground belts with automatic entry/exit detection and placement preview
+- Rotators for turning shapes before later processing
+- Stackers for combining compatible shapes into more complex outputs
+- Trash bins for removing incorrect or excess products
+- Level-based target shapes and progression goals
+- Per-level upgrade choices for belts, balancers, underground belts, miners, cutters, rotators, and stackers
+- Save/load support for map state, progression, and upgrade tiers
+- Zooming, panning, responsive map rendering, and blueprint placement previews
+- Simplified Chinese / English language switching from the main menu
+
+This makes the project more than a static prototype: it already supports a small but complete production-chain loop with progression, logistics optimization, and multiple building interactions.
 
 ## Tech Stack
 
