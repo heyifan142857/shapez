@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 2.0.2 - 2026-03-27
+
+### Fixed
+- Fixed cutters so circle and diamond ores can be cut just like square ores.
+- Fixed split diamond item rendering after cutting and in combined shape previews.
+- Fixed miners placed directly against cutters so they can feed and split ores without an intermediate belt.
+
 ## 2.0.1 - 2026-03-27
 
 ### Added
