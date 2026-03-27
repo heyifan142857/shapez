@@ -480,7 +480,7 @@ void Map::moveSingleItem(int x,int y,QSet<std::pair<int, int>> &movedItems){
                     if(realDirection == SOUTH || realDirection == WEST){
                         std::swap(items.first,items.second);
                     }
-                    std::pair<std::pair<int,int>,std::pair<int,int>> outItemPos = cutterOutPox(x,y,*tiles[newPos.first][newPos.second]);
+                    std::pair<std::pair<int,int>,std::pair<int,int>> outItemPos = cutterOutPox(newPos.first,newPos.second,*tiles[newPos.first][newPos.second]);
 
                     if(tiles[outItemPos.first.first][outItemPos.first.second]->item!=nullptr || tiles[outItemPos.second.first][outItemPos.second.second]->item!=nullptr){
                         return;
@@ -493,21 +493,13 @@ void Map::moveSingleItem(int x,int y,QSet<std::pair<int, int>> &movedItems){
                     tiles[outItemPos.first.first][outItemPos.first.second]->item->pos = outItemPos.first;
                     tiles[outItemPos.first.first][outItemPos.first.second]->item->label = new QLabel(this);
                     tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-                    QPixmap pixmap1 =  tiles[outItemPos.first.first][outItemPos.first.second]->item->getPixmap();
-                    tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setPixmap(scaledPixmapForSize(pixmap1, cellPixelSize()));
-                    tiles[outItemPos.first.first][outItemPos.first.second]->item->label->hide();
-                    tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setGeometry(tileGeometry(outItemPos.first.first, outItemPos.first.second));
-                    tiles[outItemPos.first.first][outItemPos.first.second]->item->label->raise();
+                    updateItemLabel(outItemPos.first);
 
                     tiles[outItemPos.second.first][outItemPos.second.second]->item = items.second;
                     tiles[outItemPos.second.first][outItemPos.second.second]->item->pos = outItemPos.second;
                     tiles[outItemPos.second.first][outItemPos.second.second]->item->label = new QLabel(this);
                     tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-                    QPixmap pixmap2 =  tiles[outItemPos.second.first][outItemPos.second.second]->item->getPixmap();
-                    tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setPixmap(scaledPixmapForSize(pixmap2, cellPixelSize()));
-                    tiles[outItemPos.second.first][outItemPos.second.second]->item->label->hide();
-                    tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setGeometry(tileGeometry(outItemPos.second.first, outItemPos.second.second));
-                    tiles[outItemPos.second.first][outItemPos.second.second]->item->label->raise();
+                    updateItemLabel(outItemPos.second);
                     movedItems.insert({outItemPos.first.first,outItemPos.first.second});
                     movedItems.insert({outItemPos.second.first,outItemPos.second.second});
                 }else{
@@ -619,14 +611,14 @@ void Map::cutterUpdate(){
                 std::pair<int,int> newPos = nextPox(x,y,*tiles[x][y]);
                 //Tile nextTile = getTile(newPos);
                 if(!inMap(newPos) || tiles[newPos.first][newPos.second]->type == Tile::Type::Color || tiles[newPos.first][newPos.second]->type == Tile::Type::Empty || tiles[newPos.first][newPos.second]->type == Tile::Type::Resource){
-                    return;
+                    continue;
                 }
                 if(tiles[newPos.first][newPos.second]->father != nullptr && tiles[newPos.first][newPos.second]->type!=Tile::Type::Hub){
-                    return;
+                    continue;
                 }
                 if(tiles[newPos.first][newPos.second]->type == Tile::Type::Belt){
                     if(tiles[newPos.first][newPos.second]->item != nullptr){
-                        return;
+                        continue;
                     }
                     int realDirection = tiles[x][y]->direction;
                     if(tiles[x][y]->type == Tile::Type::Belt){
@@ -638,7 +630,7 @@ void Map::cutterUpdate(){
                         }
                     }
                     if(realDirection != tiles[newPos.first][newPos.second]->direction){
-                        return;
+                        continue;
                     }
                     Item *item = tiles[x][y]->item;
                     tiles[item->pos.first][item->pos.second]->item = nullptr;
@@ -657,7 +649,7 @@ void Map::cutterUpdate(){
                             }
                         }
                         if(realDirection != tiles[newPos.first][newPos.second]->direction){
-                            return;
+                            continue;
                         }else{
                             std::pair<std::pair<int,int>,std::pair<int,int>> outPos = cutterOutPox(newPos.first,newPos.second,*tiles[newPos.first][newPos.second]);
                             if(canEnter(tiles[newPos.first][newPos.second]->direction, outPos.first)&&canEnter(tiles[newPos.first][newPos.second]->direction, outPos.second)){
@@ -668,13 +660,16 @@ void Map::cutterUpdate(){
                                     stragedy = 1;
                                 }
                                 if(!tiles[x][y]->item->isCuttable()){
-                                    return;
+                                    continue;
                                 }
                                 std::pair<Item*,Item*> items = tiles[x][y]->item->cutItem(stragedy);
+                                if(tiles[x][y]->direction == SOUTH || tiles[x][y]->direction == WEST){
+                                    std::swap(items.first,items.second);
+                                }
                                 std::pair<std::pair<int,int>,std::pair<int,int>> outItemPos = cutterOutPox(x,y,*tiles[x][y]);
 
                                 if(tiles[outItemPos.first.first][outItemPos.first.second]->item!=nullptr || tiles[outItemPos.second.first][outItemPos.second.second]->item!=nullptr){
-                                    return;
+                                    continue;
                                 }
 
                                 delete tiles[x][y]->item;
@@ -684,23 +679,15 @@ void Map::cutterUpdate(){
                                 tiles[outItemPos.first.first][outItemPos.first.second]->item->pos = outItemPos.first;
                                 tiles[outItemPos.first.first][outItemPos.first.second]->item->label = new QLabel(this);
                                 tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-                                QPixmap pixmap1 =  tiles[outItemPos.first.first][outItemPos.first.second]->item->getPixmap();
-                                tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setPixmap(scaledPixmapForSize(pixmap1, cellPixelSize()));
-                                tiles[outItemPos.first.first][outItemPos.first.second]->item->label->hide();
-                                tiles[outItemPos.first.first][outItemPos.first.second]->item->label->setGeometry(tileGeometry(outItemPos.first.first, outItemPos.first.second));
-                                tiles[outItemPos.first.first][outItemPos.first.second]->item->label->raise();
+                                updateItemLabel(outItemPos.first);
 
                                 tiles[outItemPos.second.first][outItemPos.second.second]->item = items.second;
                                 tiles[outItemPos.second.first][outItemPos.second.second]->item->pos = outItemPos.second;
                                 tiles[outItemPos.second.first][outItemPos.second.second]->item->label = new QLabel(this);
                                 tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-                                QPixmap pixmap2 =  tiles[outItemPos.second.first][outItemPos.second.second]->item->getPixmap();
-                                tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setPixmap(scaledPixmapForSize(pixmap2, cellPixelSize()));
-                                tiles[outItemPos.second.first][outItemPos.second.second]->item->label->hide();
-                                tiles[outItemPos.second.first][outItemPos.second.second]->item->label->setGeometry(tileGeometry(outItemPos.second.first, outItemPos.second.second));
-                                tiles[outItemPos.second.first][outItemPos.second.second]->item->label->raise();
+                                updateItemLabel(outItemPos.second);
                             }else{
-                                return;
+                                continue;
                             }
                         }
                         //todo

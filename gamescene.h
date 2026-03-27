@@ -8,6 +8,7 @@
 #include <QPushButton>
 #include <QSoundEffect>
 #include <QVector>
+#include <QHash>
 #include "map.h"
 
 class Gamescene : public QWidget
@@ -73,8 +74,12 @@ private:
     Tile beltTileForPathIndex(int index) const;
     int directionForStep(const QPoint &from, const QPoint &to) const;
     bool isCellAvailableForDraggedBelt(const QPoint &cell) const;
+    Tile *createPlacementTile(Tile::Type type, const QString &name, std::pair<int, int> size = std::make_pair(1,1)) const;
+    int rememberedDirectionFor(const QString &name, Tile::Type type) const;
+    void rememberDirectionForCurrentTile();
 
     int defaultBeltDirection;
+    QHash<QString, int> rememberedBuildingDirections;
 
     QPushButton * beltbtn;
     QPushButton * balancerbtn;
