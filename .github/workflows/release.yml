@@ -9,6 +9,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     name: ${{ matrix.name }}
@@ -32,7 +35,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -95,7 +98,7 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent build/Shapez.app dist/${{ matrix.artifact-name }}
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: ${{ matrix.name }}-release
           path: dist/${{ matrix.artifact-name }}

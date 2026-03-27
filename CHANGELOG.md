@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## 2.0.1 - 2026-03-27
+
+### Added
+- Remember the last rotation state for buildings during placement, matching the existing belt placement workflow.
+
+### Changed
+- Updated the GitHub release workflow for the 2026 Node.js 24 runtime transition on GitHub Actions runners.
+- Upgraded core GitHub Actions steps in the release workflow to newer Node 24 compatible versions where available.
+
+### Fixed
+- Fixed cutter output positions when items enter from belts.
+- Fixed cases where one blocked cutter could interrupt cutter updates for the whole map.
+- Fixed cutter output item labels not being shown after new split items were created.
+- Included the latest LICENSE and README licensing updates in the next patch release.
+
 ### Added
 - English GitHub-style `README.md` with project overview, controls, and build instructions.
 - `CHANGELOG.md` for tracking repository updates.
