@@ -19,13 +19,13 @@ Item::Item(QString mine,std::pair<int,int> pos):label(nullptr),pos(pos){
         part3 = SQUARE;
         part4 = SQUARE;
     }else if(mine == "circle"){
-        cuttable = false;
+        cuttable = true;
         part1 = CIRCLE;
         part2 = CIRCLE;
         part3 = CIRCLE;
         part4 = CIRCLE;
     }else if(mine == "diamond"){
-        cuttable = false;
+        cuttable = true;
         part1 = DIAMOND;
         part2 = DIAMOND;
         part3 = DIAMOND;
@@ -219,6 +219,8 @@ QPixmap Item::drawPixmap(int part1, int part2, int part3, int part4, int pixmapS
     circle.fill(Qt::transparent);
     QPixmap square(pixmapSize, pixmapSize);
     square.fill(Qt::transparent);
+    QPixmap diamond(pixmapSize, pixmapSize);
+    diamond.fill(Qt::transparent);
     QPen pen(QColor("#404040"));
     pen.setWidth(4);
     QRectF rectangle(offset, offset, 2*size, 2*size);
@@ -239,6 +241,22 @@ QPixmap Item::drawPixmap(int part1, int part2, int part3, int part4, int pixmapS
     painter2.drawLine(offset, size+offset, 2*size+offset, size+offset);
     painter2.drawLine(size+offset, offset, size+offset, 2*size+offset);
 
+    QPainter painter3(&diamond);
+    painter3.setRenderHint(QPainter::Antialiasing);
+    painter3.setPen(pen);
+    painter3.setBrush(QColor("#9EA1A3"));
+
+    QPointF top(offset + size, offset);
+    QPointF right(offset + 2 * size, offset + size);
+    QPointF bottom(offset + size, offset + 2 * size);
+    QPointF left(offset, offset + size);
+
+    QPolygonF diamondShape;
+    diamondShape << top << right << bottom << left;
+    painter3.drawPolygon(diamondShape);
+    painter3.drawLine(offset, size+offset, 2*size+offset, size+offset);
+    painter3.drawLine(size+offset, offset, size+offset, 2*size+offset);
+
     QPixmap pixmap1;
     QPixmap pixmap2;
     QPixmap pixmap3;
@@ -251,6 +269,9 @@ QPixmap Item::drawPixmap(int part1, int part2, int part3, int part4, int pixmapS
         }
         if (type == CIRCLE){
             pixmap = circle.copy(cropRect);
+        }
+        if (type == DIAMOND){
+            pixmap = diamond.copy(cropRect);
         }
         if (type == EMPTY){
             pixmap = QPixmap((pixmapSize/2),(pixmapSize/2));
