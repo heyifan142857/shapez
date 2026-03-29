@@ -9,17 +9,20 @@ This project was created for an advanced programming course and focuses on build
 The game reproduces the core loop of placing structures and moving items on a grid-based map. The current version already includes a broader factory gameplay loop with:
 
 - Belts with drag placement, automatic turns, and remembered placement rotation
-- Miners for extracting square, circle, and diamond resources
+- Miners for extracting square, circle, diamond, and dye resources
 - Cutters for splitting shapes into valid halves
 - Balancers for distributing throughput across two outputs
 - Underground belts with automatic entry/exit detection and placement preview
 - Rotators for turning shapes before later processing
 - Stackers for combining compatible shapes into more complex outputs
+- Mixers for additive RGB dye mixing into yellow, cyan, purple, and white
+- Painters for applying dyes to produced shapes
 - Trash bins for removing incorrect or excess products
-- Level-based target shapes and progression goals
-- Per-level upgrade choices for belts, balancers, underground belts, miners, cutters, rotators, and stackers
+- Red, green, and blue dye ore clusters that spawn on the map
+- Level-based target shapes and progression goals, including colored late-game goals
+- Per-level upgrade choices for belts, balancers, underground belts, miners, cutters, rotators, stackers, mixers, and painters
 - Save/load support for map state, progression, and upgrade tiers
-- Zooming, panning, responsive map rendering, and blueprint placement previews
+- Zooming, panning, responsive map rendering, blueprint placement previews, and resizable windows
 - Simplified Chinese / English language switching from the main menu
 
 This makes the project more than a static prototype: it already supports a small but complete production-chain loop with progression, logistics optimization, and multiple building interactions.
@@ -54,20 +57,61 @@ Make sure the following tools are available on your machine:
 
 ### Build Commands
 
+Single-config generators such as `Ninja` or `Unix Makefiles` (common on Linux and many macOS setups):
+
 ```bash
 cmake -S . -B build
 cmake --build build
 ```
 
+Multi-config generators such as Visual Studio (common on Windows):
+
+```powershell
+cmake -S . -B build
+cmake --build build --config Release
+```
+
+### Optional Debug Cheats Build
+
+Debug-only cheats are compiled out by default. If you want the in-game debug helpers such as the next-level button / shortcut, configure the build with:
+
+```bash
+cmake -S . -B build-debug -DSHAPEZ_ENABLE_DEBUG_CHEATS=ON -DCMAKE_BUILD_TYPE=Debug
+cmake --build build-debug
+```
+
+On Windows / other multi-config generators, configure once and pick the `Debug` configuration when building:
+
+```powershell
+cmake -S . -B build-debug -DSHAPEZ_ENABLE_DEBUG_CHEATS=ON
+cmake --build build-debug --config Debug
+```
+
+Without `-DSHAPEZ_ENABLE_DEBUG_CHEATS=ON`, those cheats are not included in the executable.
+
 ### Run
 
 After building, launch the generated executable from the `build/` directory.
 
-On Linux, it is typically:
+With single-config generators on Linux, it is typically:
 
 ```bash
 ./build/Shapez
 ```
+
+With Visual Studio on Windows, it is typically:
+
+```powershell
+.\build\Release\Shapez.exe
+```
+
+If you built the optional debug-cheat variant with a multi-config generator, that path is usually:
+
+```powershell
+.\build-debug\Debug\Shapez.exe
+```
+
+If you launch the executable outside Qt Creator on Windows, make sure the required Qt runtime DLLs are available in your environment or deployed alongside the executable.
 
 You can also open the project directly in Qt Creator and build it there.
 
@@ -76,6 +120,9 @@ You can also open the project directly in Qt Creator and build it there.
 - Mouse: most in-game interactions
 - `R`: rotate the selected building
 - `T`: switch belt style
+- `Esc`: cancel the current placement
+- `1`-`0`: quick-select toolbar buildings
+- `F10`: instantly complete the current level and open the upgrade choice when built with `SHAPEZ_ENABLE_DEBUG_CHEATS=ON`
 
 ## Screenshots
 

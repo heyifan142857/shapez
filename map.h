@@ -52,6 +52,8 @@ public:
     void rotaterUpdate();
     void balancerUpdate();
     void stackerUpdate();
+    void mixerUpdate();
+    void painterUpdate();
     void undergroundBeltUpdate();
 
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -59,9 +61,9 @@ public:
     void paintEvent(QPaintEvent *event) override;
 
     void setItem(std::pair<int,int> pos, Item *item);
-    void setGoalShape(const std::array<int, 4> &parts);
+    void setGoalShape(const std::array<int, 4> &parts, const std::array<QString, 4> &colors);
 
-    void itemToHub(int part1, int part2, int part3, int part4);
+    void itemToHub(const Item &item);
     void clearMap();
 
     void setZoomFactor(double zoomFactor);
@@ -99,6 +101,8 @@ public:
     int currentCutterIntervalMs = 8000;
     int currentRotaterIntervalMs = 1500;
     int currentStackerIntervalMs = 2600;
+    int currentMixerIntervalMs = 2600;
+    int currentPainterIntervalMs = 2600;
 
     // Underground belt placement preview line (grid cell coords, -1,-1 = none)
     QPoint undergroundPreviewStart = QPoint(-1, -1);
@@ -127,6 +131,7 @@ private:
     int hudAnchorColumn = 15;
     QLabel *buildingInfoLabel = nullptr;
     std::array<int, 4> goalShape = {EMPTY, EMPTY, EMPTY, EMPTY};
+    std::array<QString, 4> goalShapeColors = {"", "", "", ""};
 
     QSize cellPixelSize(std::pair<int, int> cellSpan = std::make_pair(1,1)) const;
     QRect tileGeometry(int x, int y, std::pair<int, int> cellSpan = std::make_pair(1,1)) const;
@@ -143,6 +148,11 @@ private:
     QPoint alternateCellForWideBuilding(const QPoint &root, const Tile &tile) const;
     bool isPrimaryInputCellForWideBuilding(const QPoint &destinationCell, const QPoint &root, const Tile &tile) const;
     QPoint primaryInputCellForSingleInputWideBuilding(const QPoint &root, const Tile &tile) const;
+    QPoint painterShapeCell(const QPoint &root, const Tile &tile) const;
+    QPoint painterDyeCell(const QPoint &root, const Tile &tile) const;
+    int painterShapeInputDirection(const Tile &tile) const;
+    int painterDyeInputDirection(const Tile &tile) const;
+    int painterOutputDirection(const Tile &tile) const;
     bool canInsertItemAt(const QPoint &destinationCell, int direction) const;
     bool tryInsertItemAt(const QPoint &destinationCell, int direction, Item *item);
     void setBufferedItemPosition(Item *item, const QPoint &cell);

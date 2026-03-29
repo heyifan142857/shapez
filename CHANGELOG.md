@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Added
+- Added dye resource spawning for red, green, and blue dye ore clusters, with miners now able to extract dye tiles just like normal ore.
+- Added working `Mixer` and `Painter` buildings so factories can combine dyes with additive RGB color mixing and apply paint to produced shapes.
+- Added colored level goals in later stages, including secondary-color goals that require the dye production chain.
+- Added per-item color state and save/load support for dyed shapes, dye items, and dye-backed miners.
+- Added an optional build-time cheat toggle via `-DSHAPEZ_ENABLE_DEBUG_CHEATS=ON`, exposing the debug-only next-level shortcut and button only in those builds.
+- Added upgrade tiers for `Mixer` and `Painter`, including save/load persistence and separate processing speeds in-game.
+- Added legacy save migration for the old dye system, remapping historical yellow/orange/green save data onto the new additive RGB palette when loading older saves.
+- Added persistent saved upgrade points, allowing level rewards to be skipped and spent later from either the level-complete upgrade dialog or the upgrade overview panel.
+
+### Changed
+- Updated hub validation so deliveries now require both matching shape parts and matching colors before they count toward level progress.
+- Reworked dye progression to use additive RGB mixing, so red/green/blue now produce yellow/cyan/purple and full RGB combinations produce white.
+- Updated mixer and painter tooltips/building descriptions to reflect their real behavior.
+- Reworked the level-complete upgrade dialog into a card-based layout with building icons, persistent progress bars, descriptions, and hoverable `➕` upgrade buttons.
+- Updated both upgrade panels so they show available/saved upgrade points, allow multiple queued spends before closing, and keep progress visible even at max tier.
+- Reworked the main menu and gameplay windows to start within the current screen size and remain resizable on smaller displays.
+- Updated the main menu layout and artwork placement to scale with the window instead of assuming a fixed `1600x900` frame.
+- Improved dragged belt placement so paths can bend toward valid nearby connections even when the straight path is blocked, and preserved manual `T` belt variants during placement.
+- Expanded `README.md` build/run instructions to cover Windows Visual Studio style builds in addition to single-config desktop setups.
+
+### Fixed
+- Fixed dye ore rendering so color tiles use their actual icon size instead of collapsing to zero-sized sprites.
+- Adjusted dye resource generation to prefer spawning attached to existing ore fields, making them easier to find during gameplay.
+- Fixed painter input direction handling so the default 1x2 layout correctly accepts shapes from the left and dye from above the right-hand cell.
+- Fixed dye item rendering order so painted items stay above belts instead of occasionally drawing underneath them.
+- Fixed missing fallback rendering for colors without a dedicated sprite asset so mixed outputs such as white remain visible.
+- Fixed upgrade point persistence so skipping an upgrade no longer discards the earned point and saved points survive save/load cycles.
+
 ## 2.1.0 - 2026-03-27
 
 ### Added

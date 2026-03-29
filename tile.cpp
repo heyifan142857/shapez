@@ -80,12 +80,17 @@ Tile::Tile(Type type, int direction, const QString& name, std::pair<int,int> siz
             image = wrongPixmap;
             break;
         }
-        w = pixmap.width();
-        h = pixmap.height();
-        w = w / 192 * TILESIZE;
-        h = h / 192 * TILESIZE;
-        scaledpixmap = pixmap.scaled(w, h, Qt::KeepAspectRatio).transformed(transform);
-        image = scaledpixmap;
+        {
+            const int dyeSize = qMax(1, qRound(TILESIZE * 0.6));
+            const QPixmap centeredDye = pixmap.scaled(dyeSize, dyeSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            QPixmap colorTile(TILESIZE, TILESIZE);
+            colorTile.fill(Qt::transparent);
+            QPainter painter(&colorTile);
+            painter.drawPixmap((TILESIZE - centeredDye.width()) / 2,
+                               (TILESIZE - centeredDye.height()) / 2,
+                               centeredDye);
+            image = colorTile.transformed(transform);
+        }
         break;
     case Tile::Type::Resource:
         if(name == "circle"){

@@ -67,6 +67,7 @@ private:
     bool handleMapMouseRelease(QMouseEvent *event);
     void populateStartingResources();
     void placeRandomResourceCluster(const QString &resourceName, int rowMin, int rowMax, int colMin, int colMax);
+    void placeRandomColorCluster(const QString &colorName);
     void updateTexts();
     QString upgradeOverviewText() const;
     void showUpgradeOverview();
@@ -77,12 +78,16 @@ private:
     Tile beltTileForPathIndex(int index) const;
     int directionForStep(const QPoint &from, const QPoint &to) const;
     bool isCellAvailableForDraggedBelt(const QPoint &cell) const;
+    bool canConnectDraggedBeltToCell(const QPoint &from, const QPoint &target) const;
     Tile *createPlacementTile(Tile::Type type, const QString &name, std::pair<int, int> size = std::make_pair(1,1)) const;
     int rememberedDirectionFor(const QString &name, Tile::Type type) const;
     void rememberDirectionForCurrentTile();
     std::array<int, 4> generatedGoalForLevel(int levelIndex) const;
+    std::array<QString, 4> generatedGoalColorsForLevel(int levelIndex, const std::array<int, 4> &parts) const;
     void refreshProgressLabels();
+    bool applyUpgradeOption(int optionId);
     void tryAdvanceLevel();
+    void skipCurrentLevelForDebug();
 
     int defaultBeltDirection;
     QHash<QString, int> rememberedBuildingDirections;
@@ -100,6 +105,7 @@ private:
     QPushButton * backbtn;
     QPushButton * savebtn;
     QPushButton * upgratebtn;
+    QPushButton * debugNextLevelBtn = nullptr;
 
     QSoundEffect ui_clickEffect;
 
@@ -110,6 +116,7 @@ private:
     bool isBeltDragging = false;
     bool hasInitializedMapPosition = false;
     QPoint lastPanGlobalPos;
+    QPoint beltDragConnectionTarget = QPoint(-1, -1);
     QVector<QPoint> beltDragPath;
     QVector<QPoint> activeDraggedBeltCells;
     QString languageCode = "zh-CN";
@@ -121,6 +128,8 @@ private:
     QTimer* cutterTimer;
     QTimer* rotaterTimer;
     QTimer* stackerTimer;
+    QTimer* mixerTimer;
+    QTimer* painterTimer;
 
     // Tier-based upgrade system (0 = default)
     int itemMoveTier = 0;
@@ -130,7 +139,11 @@ private:
     int cutterTier   = 0;
     int rotaterTier  = 0;
     int stackerTier  = 0;
+    int mixerTier    = 0;
+    int painterTier  = 0;
+    int pendingUpgradePoints = 0;
     std::array<int, 4> currentGoalParts = {EMPTY, EMPTY, EMPTY, EMPTY};
+    std::array<QString, 4> currentGoalColors = {"", "", "", ""};
 
     // Timer intervals per tier
     static constexpr int kBeltIntervals[6]       = {800, 640, 520, 420, 330, 250};
@@ -140,6 +153,8 @@ private:
     static constexpr int kCutterIntervals[6]     = {8000, 6200, 4800, 3600, 2700, 2000};
     static constexpr int kRotaterIntervals[6]    = {1600, 1300, 1050, 850, 680, 520};
     static constexpr int kStackerIntervals[6]    = {2600, 2100, 1700, 1360, 1080, 860};
+    static constexpr int kMixerIntervals[6]      = {2600, 2100, 1700, 1360, 1080, 860};
+    static constexpr int kPainterIntervals[6]    = {2600, 2100, 1700, 1360, 1080, 860};
 
     void applyTimerTiers();
     void updateUndergroundBeltPreview(const QPoint &gridCell);
