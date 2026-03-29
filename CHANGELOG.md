@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 2.2.0 - 2026-03-29
 
 ### Added
 - Added dye resource spawning for red, green, and blue dye ore clusters, with miners now able to extract dye tiles just like normal ore.
