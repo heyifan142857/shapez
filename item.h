@@ -3,7 +3,9 @@
 #include <QLabel>
 #include <QPixmap>
 #include <QString>
+#include <QColor>
 #include <QUuid>
+#include <array>
 
 
 #define EMPTY 0
@@ -21,7 +23,9 @@ class Item
 {
 public:
     Item():part1(EMPTY),part2(EMPTY),part3(EMPTY),part4(EMPTY),
-        label(nullptr),cuttable(true),pos(std::make_pair(0,0)){
+        label(nullptr),cuttable(true),pos(std::make_pair(0,0)),
+        part1Color(""),part2Color(""),part3Color(""),part4Color(""),
+        dyeName("") {
 
     }
     Item(int part1,int part2,int part3,int part4, std::pair<int,int> pos = std::make_pair(0,0));
@@ -29,11 +33,19 @@ public:
     Item(const Item& other);
     ~Item();
 
+    static bool isDyeName(const QString &name);
+    static QColor colorForName(const QString &name);
+
+    bool isDye() const;
+    void applyColor(const QString &colorName);
+
     QPixmap getPixmap();
-    QPixmap drawSquare();
-    QPixmap drawCircle();
-    QPixmap drawDiamond();
+    QPixmap drawSquare(const QString &colorName = "uncolored");
+    QPixmap drawCircle(const QString &colorName = "uncolored");
+    QPixmap drawDiamond(const QString &colorName = "uncolored");
     QPixmap drawPixmap(int part1,int part2,int part3,int part4,int pixmapSize);
+    QPixmap drawPixmap(int part1,int part2,int part3,int part4,int pixmapSize,
+                       const std::array<QString, 4> &partColors);
 
     std::pair<Item*,Item*> cutItem(int stragedy);//stragedy = 0,横着切;stragedy = 1,竖着切
 
@@ -51,6 +63,11 @@ public:
     int part2;
     int part3;
     int part4;
+    QString part1Color;
+    QString part2Color;
+    QString part3Color;
+    QString part4Color;
+    QString dyeName;
     QLabel* label;
 private:
     bool cuttable;

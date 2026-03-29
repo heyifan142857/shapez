@@ -14,6 +14,7 @@
 #include <QMediaPlayer>
 #include <QAudioOutput>
 #include <QFileDialog>
+#include <QResizeEvent>
 #include "gamescene.h"
 
 QT_BEGIN_NAMESPACE
@@ -35,6 +36,7 @@ public:
     void loadGameAndSwitchToGameScene();
 
     void paintEvent(QPaintEvent *);
+    void resizeEvent(QResizeEvent *event) override;
 
     Gamescene * _gamescene = NULL;
 
@@ -44,6 +46,7 @@ private:
     void toggleLanguage();
     QString t(const QString &zhText, const QString &enText) const;
     void updateLanguageButtonIcon();
+    void updateInterfaceLayout();
 
     QMediaPlayer *player;
     QAudioOutput *audioOutput;
@@ -52,6 +55,8 @@ private:
     QPushButton *readbtn = nullptr;
     QPushButton *continuebtn = nullptr;
     QPushButton *languagebtn = nullptr;
+    QPushButton *steambtn = nullptr;
+    QPushButton *githubbtn = nullptr;
     QString languageCode = "zh-CN";
 private:
     Ui::MainScene *ui;

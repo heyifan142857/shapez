@@ -14,6 +14,87 @@ struct BuildingInfoEntry {
     QString enDescription;
 };
 
+QPoint pointInDirection(const QPoint &origin, int direction)
+{
+    switch (direction) {
+    case NORTH:
+        return QPoint(origin.x() - 1, origin.y());
+    case EAST:
+        return QPoint(origin.x(), origin.y() + 1);
+    case SOUTH:
+        return QPoint(origin.x() + 1, origin.y());
+    case WEST:
+        return QPoint(origin.x(), origin.y() - 1);
+    default:
+        return origin;
+    }
+}
+
+QString mixedDyeName(const QString &first, const QString &second)
+{
+    auto additiveMaskForName = [](const QString &name) {
+        if (name == "red") {
+            return 0b001;
+        }
+        if (name == "green") {
+            return 0b010;
+        }
+        if (name == "blue") {
+            return 0b100;
+        }
+        if (name == "yellow" || name == "orange") {
+            return 0b011;
+        }
+        if (name == "purple") {
+            return 0b101;
+        }
+        if (name == "cyan") {
+            return 0b110;
+        }
+        if (name == "white") {
+            return 0b111;
+        }
+        return 0;
+    };
+
+    auto dyeNameForMask = [](int mask) {
+        switch (mask) {
+        case 0b001:
+            return QStringLiteral("red");
+        case 0b010:
+            return QStringLiteral("green");
+        case 0b100:
+            return QStringLiteral("blue");
+        case 0b011:
+            return QStringLiteral("yellow");
+        case 0b101:
+            return QStringLiteral("purple");
+        case 0b110:
+            return QStringLiteral("cyan");
+        case 0b111:
+            return QStringLiteral("white");
+        default:
+            return QString();
+        }
+    };
+
+    const int firstMask = additiveMaskForName(first);
+    const int secondMask = additiveMaskForName(second);
+    if (firstMask == 0 || secondMask == 0) {
+        return {};
+    }
+
+    return dyeNameForMask(firstMask | secondMask);
+}
+
+QString normalizedPartColor(int part, const QString &color)
+{
+    if (part == EMPTY) {
+        return QString();
+    }
+    return color.isEmpty() ? QStringLiteral("uncolored") : color;
+}
+
 bool isInspectableTile(const Tile &tile)
 {
     return tile.type == Tile::Type::Hub ||
@@ -108,8 +189,8 @@ BuildingInfoEntry buildingInfoEntryForTile(const Tile &tile)
         return {
             "混合器",
             "Mixer",
-            "将多路输入整合到同一产线，便于后续加工。<br/><span style='color:red;'>⚠ 功能尚未实现</span>",
-            "Merges multiple inputs into one combined line for later processing.<br/><span style='color:red;'>⚠ Not yet implemented</span>"
+            "使用 RGB 加色法混合染料：红+绿=黄，红+蓝=紫，绿+蓝=青，三色凑齐会得到白色。",
+            "Uses additive RGB color mixing: red+green=yellow, red+blue=purple, green+blue=cyan, and all three channels combine into white."
         };
     }
 
@@ -117,8 +198,8 @@ BuildingInfoEntry buildingInfoEntryForTile(const Tile &tile)
         return {
             "染色器",
             "Painter",
-            "给输入图形上色，让产线能够制作彩色目标。<br/><span style='color:red;'>⚠ 功能尚未实现</span>",
-            "Applies color to incoming shapes so you can produce painted targets.<br/><span style='color:red;'>⚠ Not yet implemented</span>"
+            "使用染料给输入图形整体上色。默认朝向时图形从左进、染料从右格上方进、右侧输出。",
+            "Applies dye to an incoming shape. In its default orientation, shapes enter from the left, dye enters the right cell from above, and output leaves on the right."
         };
     }
 
@@ -236,7 +317,8 @@ void Map::setTile(int x, int y, Tile &tile, bool playSound) {
         levelLabel->raise();
     }
     if(tile.type == Tile::Type::Building && tile.name == "miner"){
-        if(tile.mine == nullptr && tiles[x][y]->type == Tile::Type::Resource){
+        if(tile.mine == nullptr &&
+           (tiles[x][y]->type == Tile::Type::Resource || tiles[x][y]->type == Tile::Type::Color)){
             tile.mine = new Tile(*tiles[x][y]);
         }
         if (tile.mine != nullptr) {
@@ -333,8 +415,10 @@ bool Map::deleteTile(int x, int y){
     if(tiles[x][y]->type == Tile::Type::Empty){
         return true;
     }
-    if(tiles[x][y]->type == Tile::Type::Hub || tiles[x][y]->type == Tile::Type::Resource){
-        qDebug() << "Hub/Resource cannot be destoryed";
+    if(tiles[x][y]->type == Tile::Type::Hub ||
+       tiles[x][y]->type == Tile::Type::Resource ||
+       tiles[x][y]->type == Tile::Type::Color){
+        qDebug() << "Hub/Resource/Color cannot be destoryed";
         return false;
     }
     if(tiles[x][y]->type == Tile::Type::Building && tiles[x][y]->name == "miner" && tiles[x][y]->mine){
@@ -627,6 +711,73 @@ void Map::stackerUpdate(){
     }
 }
 
+void Map::mixerUpdate(){
+    for (int x = 0; x < height; ++x) {
+        for (int y = 0; y < width; ++y) {
+            Tile *tile = tiles[x][y];
+            if (tile->type != Tile::Type::Building || tile->father != nullptr || tile->name != "mixer") {
+                continue;
+            }
+            if (tile->item == nullptr || tile->secondaryItem == nullptr) {
+                continue;
+            }
+            if (!tile->item->isDye() || !tile->secondaryItem->isDye()) {
+                continue;
+            }
+
+            const QString resultColor = mixedDyeName(tile->item->dyeName, tile->secondaryItem->dyeName);
+            if (resultColor.isEmpty()) {
+                continue;
+            }
+
+            const QPoint root(x, y);
+            const QPoint primary = primaryCellForWideBuilding(root, *tile);
+            const QPoint outPos = pointInDirection(primary, tile->direction);
+            Item *mixedItem = new Item(resultColor, std::make_pair(outPos.x(), outPos.y()));
+            if (tryInsertItemAt(outPos, tile->direction, mixedItem)) {
+                delete tile->item;
+                delete tile->secondaryItem;
+                tile->item = nullptr;
+                tile->secondaryItem = nullptr;
+            } else {
+                delete mixedItem;
+            }
+        }
+    }
+}
+
+void Map::painterUpdate(){
+    for (int x = 0; x < height; ++x) {
+        for (int y = 0; y < width; ++y) {
+            Tile *tile = tiles[x][y];
+            if (tile->type != Tile::Type::Building || tile->father != nullptr || tile->name != "painter") {
+                continue;
+            }
+            if (tile->item == nullptr || tile->secondaryItem == nullptr) {
+                continue;
+            }
+            if (tile->item->isDye() || !tile->secondaryItem->isDye()) {
+                continue;
+            }
+
+            Item *painted = new Item(*tile->item);
+            painted->applyColor(tile->secondaryItem->dyeName);
+
+            const QPoint root(x, y);
+            const QPoint outCell = painterDyeCell(root, *tile);
+            const QPoint outPos = pointInDirection(outCell, painterOutputDirection(*tile));
+            if (tryInsertItemAt(outPos, painterOutputDirection(*tile), painted)) {
+                delete tile->item;
+                delete tile->secondaryItem;
+                tile->item = nullptr;
+                tile->secondaryItem = nullptr;
+            } else {
+                delete painted;
+            }
+        }
+    }
+}
+
 void Map::undergroundBeltUpdate(){
     for (int x = 0; x < height; ++x) {
         for (int y = 0; y < width; ++y) {
@@ -677,13 +828,16 @@ void Map::setItem(std::pair<int,int> pos, Item *item){
     setBufferedItemPosition(item, QPoint(pos.first, pos.second));
 }
 
-void Map::setGoalShape(const std::array<int, 4> &parts){
+void Map::setGoalShape(const std::array<int, 4> &parts, const std::array<QString, 4> &colors){
     goalShape = parts;
+    for (int index = 0; index < 4; ++index) {
+        goalShapeColors[index] = normalizedPartColor(parts[index], colors[index]);
+    }
 }
 
-void Map::itemToHub(int part1, int part2, int part3, int part4){
+void Map::itemToHub(const Item &item){
     int coins = 0;
-    QVector<int> parts = {part1,part2,part3,part4};
+    QVector<int> parts = {item.part1, item.part2, item.part3, item.part4};
     for(int part:parts){
         if(part == EMPTY){
             coins+=0;
@@ -701,10 +855,15 @@ void Map::itemToHub(int part1, int part2, int part3, int part4){
     ConfigManager config;
     config.addGold(coins);
 
-    if(part1 == goalShape[0] &&
-       part2 == goalShape[1] &&
-       part3 == goalShape[2] &&
-       part4 == goalShape[3]){
+    const std::array<int, 4> deliveredParts = {item.part1, item.part2, item.part3, item.part4};
+    const std::array<QString, 4> deliveredColors = {
+        normalizedPartColor(item.part1, item.part1Color),
+        normalizedPartColor(item.part2, item.part2Color),
+        normalizedPartColor(item.part3, item.part3Color),
+        normalizedPartColor(item.part4, item.part4Color)
+    };
+
+    if (deliveredParts == goalShape && deliveredColors == goalShapeColors) {
         current++;
     }
 }
@@ -952,7 +1111,8 @@ bool Map::canPlaceTile(int x, int y, const Tile &tile) const
     }
 
     if (tile.type == Tile::Type::Building && tile.name == "miner") {
-        return tiles[x][y]->type == Tile::Type::Resource;
+        return tiles[x][y]->type == Tile::Type::Resource ||
+               tiles[x][y]->type == Tile::Type::Color;
     }
 
     for (int row = 0; row < tile.size.first; ++row) {
@@ -1274,6 +1434,31 @@ QPoint Map::primaryInputCellForSingleInputWideBuilding(const QPoint &root, const
     return primaryCellForWideBuilding(root, tile);
 }
 
+QPoint Map::painterShapeCell(const QPoint &root, const Tile &tile) const
+{
+    return primaryCellForWideBuilding(root, tile);
+}
+
+QPoint Map::painterDyeCell(const QPoint &root, const Tile &tile) const
+{
+    return alternateCellForWideBuilding(root, tile);
+}
+
+int Map::painterShapeInputDirection(const Tile &tile) const
+{
+    return (tile.direction + 1) % 4;
+}
+
+int Map::painterDyeInputDirection(const Tile &tile) const
+{
+    return (tile.direction + 2) % 4;
+}
+
+int Map::painterOutputDirection(const Tile &tile) const
+{
+    return (tile.direction + 1) % 4;
+}
+
 bool Map::canInsertItemAt(const QPoint &destinationCell, int direction) const
 {
     if (!inMap(destinationCell.x(), destinationCell.y())) {
@@ -1301,6 +1486,18 @@ bool Map::canInsertItemAt(const QPoint &destinationCell, int direction) const
         return true;
     }
 
+    if (rootTile->name == "painter") {
+        const QPoint shapeCell = painterShapeCell(rootPos, *rootTile);
+        const QPoint dyeCell = painterDyeCell(rootPos, *rootTile);
+        if (destinationCell == shapeCell) {
+            return direction == painterShapeInputDirection(*rootTile) && rootTile->item == nullptr;
+        }
+        if (destinationCell == dyeCell) {
+            return direction == painterDyeInputDirection(*rootTile) && rootTile->secondaryItem == nullptr;
+        }
+        return false;
+    }
+
     if (direction != rootTile->direction) {
         return false;
     }
@@ -1321,7 +1518,7 @@ bool Map::canInsertItemAt(const QPoint &destinationCell, int direction) const
         return rootTile->item == nullptr && destinationCell == rootPos;
     }
 
-    if (rootTile->name == "stacker") {
+    if (rootTile->name == "stacker" || rootTile->name == "mixer") {
         if (destinationCell != rootPos && destinationCell != secondaryCell) {
             return false;
         }
@@ -1347,7 +1544,7 @@ bool Map::tryInsertItemAt(const QPoint &destinationCell, int direction, Item *it
     }
 
     if (tile->type == Tile::Type::Hub) {
-        itemToHub(item->part1, item->part2, item->part3, item->part4);
+        itemToHub(*item);
         delete item;
         return true;
     }
@@ -1360,8 +1557,22 @@ bool Map::tryInsertItemAt(const QPoint &destinationCell, int direction, Item *it
         return true;
     }
 
-    if (rootTile->name == "stacker") {
+    if (rootTile->name == "stacker" || rootTile->name == "mixer") {
         if (isPrimaryInputCellForWideBuilding(destinationCell, rootPos, *rootTile)) {
+            rootTile->item = item;
+            setBufferedItemPosition(item, rootPos);
+        } else {
+            rootTile->secondaryItem = item;
+            item->pos = std::make_pair(rootPos.x(), rootPos.y());
+            if (item->label) {
+                item->label->hide();
+            }
+        }
+        return true;
+    }
+
+    if (rootTile->name == "painter") {
+        if (destinationCell == painterShapeCell(rootPos, *rootTile)) {
             rootTile->item = item;
             setBufferedItemPosition(item, rootPos);
         } else {
@@ -1439,6 +1650,16 @@ QString Map::buildingInfoText(const Tile &tile) const
             QString("Speed: %1 items/s").arg(ips, 0, 'f', 2));
     } else if (tile.name == "stacker") {
         double ips = 1000.0 / currentStackerIntervalMs;
+        speedInfo = Localization::text(languageCode,
+            QString("速度: %1 个/秒").arg(ips, 0, 'f', 2),
+            QString("Speed: %1 items/s").arg(ips, 0, 'f', 2));
+    } else if (tile.name == "mixer") {
+        double ips = 1000.0 / currentMixerIntervalMs;
+        speedInfo = Localization::text(languageCode,
+            QString("速度: %1 个/秒").arg(ips, 0, 'f', 2),
+            QString("Speed: %1 items/s").arg(ips, 0, 'f', 2));
+    } else if (tile.name == "painter") {
+        double ips = 1000.0 / currentPainterIntervalMs;
         speedInfo = Localization::text(languageCode,
             QString("速度: %1 个/秒").arg(ips, 0, 'f', 2),
             QString("Speed: %1 items/s").arg(ips, 0, 'f', 2));

@@ -1,5 +1,7 @@
 #include "mainscene.h"
+#include <QGuiApplication>
 #include <QMessageBox>
+#include <QScreen>
 #include "configmanager.h"
 #include "localization.h"
 #include "./ui_mainscene.h"
@@ -10,7 +12,12 @@ Mainscene::Mainscene(QWidget *parent)
     ui->setupUi(this);
 
     //编辑窗口信息
-    setFixedSize(1600,900);
+    const QRect availableGeometry = QGuiApplication::primaryScreen()
+        ? QGuiApplication::primaryScreen()->availableGeometry()
+        : QRect(0, 0, 1600, 900);
+    const QSize preferredSize(1600, 900);
+    resize(preferredSize.boundedTo(availableGeometry.size()));
+    setMinimumSize(QSize(qMin(960, availableGeometry.width()), qMin(540, availableGeometry.height())));
     setWindowIcon(QIcon(":/res/icon.ico"));
     setWindowTitle("Shapez");
 
@@ -72,11 +79,11 @@ Mainscene::Mainscene(QWidget *parent)
     QFont font3("Microsoft YaHei", 20, QFont::Normal);
     continuebtn->setFont(font3);
 
-    QPushButton * getonsteambtn = new QPushButton();
-    getonsteambtn->setParent(this);
-    getonsteambtn->setIconSize(QSize(600,145));
-    getonsteambtn->setIcon(QIcon(":/get_on_steam.png"));
-    getonsteambtn->setStyleSheet(
+    steambtn = new QPushButton();
+    steambtn->setParent(this);
+    steambtn->setIconSize(QSize(600,145));
+    steambtn->setIcon(QIcon(":/get_on_steam.png"));
+    steambtn->setStyleSheet(
         "QPushButton {"
         " border: none;"
         " background-color: transparent;"
@@ -84,9 +91,8 @@ Mainscene::Mainscene(QWidget *parent)
         " margin: 0;"
         "}"
         );
-    getonsteambtn->move(500,725);
 
-    QPushButton * githubbtn = new QPushButton();
+    githubbtn = new QPushButton();
     githubbtn->setParent(this);
     githubbtn->setFixedSize(80, 80);
     githubbtn->setIconSize(QSize(54,54));
@@ -100,8 +106,6 @@ Mainscene::Mainscene(QWidget *parent)
         " margin: 0;"
         "}"
         );
-    githubbtn->move(40,780);
-
     languagebtn = new QPushButton(this);
     languagebtn->setFixedSize(80, 80);
     languagebtn->setIconSize(QSize(54,54));
@@ -114,9 +118,9 @@ Mainscene::Mainscene(QWidget *parent)
         " margin: 0;"
         "}"
     );
-    languagebtn->move(130,780);
     updateLanguageButtonIcon();
     applyLanguage();
+    updateInterfaceLayout();
 
     QPropertyAnimation *newbtnanimation = new QPropertyAnimation(newbtn, "geometry");
     newbtnanimation->setDuration(100);
@@ -218,7 +222,7 @@ Mainscene::Mainscene(QWidget *parent)
         });
     });
 
-    connect(getonsteambtn,&QPushButton::clicked,this,[](){
+    connect(steambtn,&QPushButton::clicked,this,[](){
         qDebug() << "Steam icon clicked";
         QUrl url("https://store.steampowered.com/app/1318690/Shapez/");
         QDesktopServices::openUrl(url);
@@ -314,8 +318,61 @@ void Mainscene::updateLanguageButtonIcon()
     languagebtn->setIcon(QIcon(iconPath));
 }
 
+void Mainscene::updateInterfaceLayout()
+{
+    const qreal scale = qMin(width() / 1600.0, height() / 900.0);
+    const int contentWidth = qRound(1600 * scale);
+    const int contentHeight = qRound(900 * scale);
+    const int offsetX = (width() - contentWidth) / 2;
+    const int offsetY = (height() - contentHeight) / 2;
+
+    auto scaleRect = [scale, offsetX, offsetY](int x, int y, int w, int h) {
+        return QRect(
+            offsetX + qRound(x * scale),
+            offsetY + qRound(y * scale),
+            qRound(w * scale),
+            qRound(h * scale)
+        );
+    };
+
+    const int mainFontPx = qMax(12, qRound(16 * scale));
+    const int continueFontPx = qMax(14, qRound(20 * scale));
+
+    QFont mainFont("Microsoft YaHei", mainFontPx, QFont::Normal);
+    newbtn->setFont(mainFont);
+    readbtn->setFont(mainFont);
+
+    QFont continueFont("Microsoft YaHei", continueFontPx, QFont::Normal);
+    continuebtn->setFont(continueFont);
+
+    newbtn->setGeometry(scaleRect(812, 424, 264, 66));
+    readbtn->setGeometry(scaleRect(812, 502, 264, 60));
+    continuebtn->setGeometry(scaleRect(524, 424, 264, 144));
+
+    steambtn->setGeometry(scaleRect(500, 725, 600, 145));
+    steambtn->setIconSize(steambtn->size());
+
+    githubbtn->setGeometry(scaleRect(40, 780, 80, 80));
+    githubbtn->setIconSize(QSize(qRound(54 * scale), qRound(54 * scale)));
+
+    languagebtn->setGeometry(scaleRect(130, 780, 80, 80));
+    languagebtn->setIconSize(QSize(qRound(54 * scale), qRound(54 * scale)));
+}
+
+void Mainscene::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+    updateInterfaceLayout();
+}
+
 void Mainscene::paintEvent(QPaintEvent *){
     QPainter painter(this);
+
+    const qreal scale = qMin(width() / 1600.0, height() / 900.0);
+    const int contentWidth = qRound(1600 * scale);
+    const int contentHeight = qRound(900 * scale);
+    const int offsetX = (width() - contentWidth) / 2;
+    const int offsetY = (height() - contentHeight) / 2;
 
     QPixmap pix;
     pix.load(":/res/mainbackground.png");
@@ -324,8 +381,19 @@ void Mainscene::paintEvent(QPaintEvent *){
     QBrush brush(QColor(255,255,255));
     painter.setBrush(brush);
     painter.setPen(Qt::NoPen);
-    painter.drawRoundedRect(500,350,600,300,10,10);
+    painter.drawRoundedRect(
+        offsetX + qRound(500 * scale),
+        offsetY + qRound(350 * scale),
+        qRound(600 * scale),
+        qRound(300 * scale),
+        qRound(10 * scale),
+        qRound(10 * scale)
+    );
 
     pix.load(":/res/logo.png");
-    painter.drawPixmap(450,60,pix);
+    const QSize logoSize(qRound(pix.width() * scale), qRound(pix.height() * scale));
+    painter.drawPixmap(
+        QRect(offsetX + qRound(450 * scale), offsetY + qRound(60 * scale), logoSize.width(), logoSize.height()),
+        pix
+    );
 }
